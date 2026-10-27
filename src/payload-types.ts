@@ -135,6 +135,7 @@ export interface Config {
       fetchNews: TaskFetchNews;
       runDeals: TaskRunDeals;
       fetchFxRates: TaskFetchFxRates;
+      prepareDigest: TaskPrepareDigest;
       inline: {
         input: unknown;
         output: unknown;
@@ -620,7 +621,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates';
+        taskSlug: 'inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates' | 'prepareDigest';
         taskID: string;
         input?:
           | {
@@ -653,7 +654,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates') | null;
+  taskSlug?: ('inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates' | 'prepareDigest') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -1233,6 +1234,14 @@ export interface TaskRunDeals {
  * via the `definition` "TaskFetchFxRates".
  */
 export interface TaskFetchFxRates {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPrepareDigest".
+ */
+export interface TaskPrepareDigest {
   input?: unknown;
   output?: unknown;
 }

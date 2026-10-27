@@ -2,7 +2,7 @@
 
 News hub, weekly newsletter, community DIY builds and an admin-only deals radar for the FPV drone community.
 
-Next.js (App Router) + Payload CMS 3 in one app, PostgreSQL, Tailwind CSS. Background jobs run on the Payload jobs queue inside the app process. Email via Resend, media on S3-compatible storage (Railway bucket). Deployed on Railway.
+Next.js (App Router) + Payload CMS 3 in one app, PostgreSQL, Tailwind CSS. `docker-compose.yml` is for the local database only. Background jobs run on the Payload jobs queue inside the app process. Email via Resend, media on S3-compatible storage (Railway bucket). Deployed on Railway.
 
 ## Status
 
@@ -11,9 +11,9 @@ Next.js (App Router) + Payload CMS 3 in one app, PostgreSQL, Tailwind CSS. Backg
 | 1 | Setup, auth/roles, collections, base layout | ✅ done |
 | 2 | News aggregator + public feed | ✅ done |
 | 3 | DIY builds + moderation + affiliate links | ✅ done |
-| 4 | Newsletter (double opt-in, weekly draft + send) | ⏳ next |
+| 4 | Newsletter (double opt-in, weekly draft + send) | ✅ done |
 | 5 | Deals radar, one source at a time | ✅ eBay, Marktplaats/2dehands, Kleinanzeigen |
-| 6 | Deploy to Railway | |
+| 6 | Deploy to Railway | ✅ Dockerfile + railway.json (image tested locally) |
 
 ## Local setup
 
@@ -90,6 +90,27 @@ Without `RESEND_API_KEY`, Payload only logs that an email was attempted (recipie
 - **Public pages:** `/builds` (filter by frame size and difficulty), `/builds/<slug>`; the three newest builds also
   appear on the homepage.
 
+## Weekly newsletter
+
+- **Signup** box on every page: email + an explicit consent checkbox + honeypot + per-IP rate limit. We store the
+  email, `consentAt` and the exact consent text (`src/lib/newsletter/consent.ts`). A confirmation email (double opt-in)
+  links to `/newsletter/confirm`; only confirmed subscribers get digests. The form gives the same answer whether or not
+  an address is already subscribed.
+- **Unsubscribe:** every digest has an unsubscribe link (`/newsletter/unsubscribe`, one button) and RFC 8058
+  `List-Unsubscribe` / `List-Unsubscribe-Post` headers, so Gmail/Apple Mail show a native one-click unsubscribe
+  (`POST /newsletter/one-click`). Bounces and spam complaints unsubscribe automatically.
+- **Weekly draft:** at the day/time in *Settings → Newsletter* (Europe/Amsterdam), the `prepareDigest` job builds a
+  draft: up to 8 news items from the last 7 days (max 2 per source), the newest build as featured, up to 3 more builds.
+  You get an email that it's ready. **It is never sent automatically.** You can also press *Build a draft from the last
+  7 days* above the Digests list.
+- **Review & send** (admin → Newsletter → Digests): edit the subject/intro, drag items to reorder, add a custom blurb,
+  change the featured build, *Send test to me*, then *Send to subscribers* (asks for confirmation; a digest can only be
+  sent once). The preview on the page shows the last saved version.
+- **Stats:** recipients, opened and clicked (unique people) on each digest, from Resend webhooks; raw events are in
+  *Email events*. In Resend, enable open and click tracking for your sending domain, and add the webhook (see
+  `RESEND_WEBHOOK_SECRET` in `.env.example`). Without `RESEND_API_KEY` (local dev) digests are only logged.
+- A basic `/privacy` page describes what we store. **Review it and add your name/contact before launch.**
+
 ## Deals radar (admin only)
 
 Dashboard: **/admin/deals** (also in the admin sidebar). Not public; contributors are redirected away.
@@ -145,6 +166,44 @@ save a fresh response into `tests/fixtures/deals/` and adjust the parser until `
 Create `src/lib/deals/adapters/<name>.ts` exporting an `Adapter` (`search(query, fetch) → Listing[]`) with a pure
 `parse…()` function, add a fixture + test, then register it in `src/lib/deals/adapters/index.ts`.
 
+## Deploy to Railway
+
+The repo contains a `Dockerfile` (Next.js standalone build) and `railway.json` (Dockerfile builder, health check,
+one replica). Pending migrations run automatically when the app boots, and the job queue (news every 30 min, deals
+every 3 h, digest drafts, FX rates) runs inside the app process, so you need just one service plus Postgres.
+
+1. **New project → Deploy from GitHub repo** → pick this repo/branch.
+2. **Add PostgreSQL** (New → Database → PostgreSQL).
+3. **Add a bucket** (New → Bucket) for uploads; open its *Credentials* tab.
+4. **Variables** on the app service:
+
+   | Variable | Value |
+   |---|---|
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
+   | `PAYLOAD_SECRET` | output of `openssl rand -hex 32` |
+   | `NEXT_PUBLIC_SERVER_URL` | `https://your-domain` (no trailing slash; used at build time, so redeploy after changing it) |
+   | `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | from the bucket's credentials; try `S3_FORCE_PATH_STYLE=true` if uploads fail |
+   | `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Resend, with a verified sending domain |
+   | `RESEND_WEBHOOK_SECRET` | after step 7 |
+   | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | eBay developer keys (deals radar) |
+   | `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`) | only if you turn on Claude summaries |
+   | `DEALS_CONTACT_EMAIL` | optional, shown in the deals bot's user agent |
+
+5. **Networking → Generate domain** (or add your custom domain) and make sure `NEXT_PUBLIC_SERVER_URL` matches.
+6. Open `https://your-domain/admin` and create the first account (it becomes admin). Then set *Settings → Site →
+   Admin email*, the newsletter day/time and the deal sources. To load the starter data, run from your machine:
+   `DATABASE_URL="<Postgres public URL from Railway>" pnpm seed`.
+7. **Resend:** enable open/click tracking for the domain and add a webhook to
+   `https://your-domain/newsletter/resend-webhook` (delivered, opened, clicked, bounced, complained); copy its signing
+   secret into `RESEND_WEBHOOK_SECRET`.
+8. After the first deploy: *Sources → Fetch all sources now* and *Deals radar → Run searches now*, then check for errors
+   on the sources and saved searches.
+
+Keep the app at **one replica**: the job crons run in-process. Turn on Railway's Postgres backups.
+
+Test the image locally: `docker build -t fpv-news --build-arg NEXT_PUBLIC_SERVER_URL=http://localhost:3000 .` and
+`docker run -p 3000:3000 -e DATABASE_URL=… -e PAYLOAD_SECRET=… fpv-news`.
+
 ## Roles
 
 | Role | Can do |
@@ -179,9 +238,10 @@ src/
   globals/Settings.ts site, news (Claude toggle), newsletter schedule
   lib/                small helpers (slugify, tags, rate limit, deal sources, http)
   lib/builds/         build options and parts/affiliate link resolution
+  lib/newsletter/     schedule, digest drafting/rendering/sending, Resend webhook verification
   lib/news/           feed parsing, canonical URLs, dedupe, auto-tags, Claude summaries, ingest
   lib/deals/          deals radar: polite HTTP client, robots.txt, FX, adapters, run logic
-  jobs/               Payload job tasks (news fetching, deals radar, FX rates)
+  jobs/               Payload job tasks (news fetching, digest drafts, deals radar, FX rates)
   scripts/            deals:check live adapter check
   admin/              custom admin components (sources fetch button, deals dashboard)
   components/         public site components

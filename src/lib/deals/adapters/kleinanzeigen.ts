@@ -1,8 +1,10 @@
 import * as cheerio from 'cheerio'
+import { addDays, ymdInZone, zonedTime } from '../../time'
 import type { Adapter, Listing, SearchQuery } from '../types'
 
 // Kleinanzeigen (DE): parses the public search results page. No login, no cookies.
 const BASE = 'https://www.kleinanzeigen.de'
+const TZ = 'Europe/Berlin'
 
 export function buildKleinanzeigenUrl(query: SearchQuery) {
   const slug = encodeURIComponent(query.keywords.trim().toLowerCase().replace(/\s+/g, '-'))
@@ -17,29 +19,19 @@ export function parseGermanPrice(text: string): number | null {
   return m ? Number(m[1].replace(/\./g, '')) + (m[2] ? Number(m[2].padEnd(2, '0')) / 100 : 0) : null
 }
 
-function berlinOffset(date: Date) {
-  const name = new Intl.DateTimeFormat('en', { timeZone: 'Europe/Berlin', timeZoneName: 'longOffset' })
-    .formatToParts(date)
-    .find((p) => p.type === 'timeZoneName')?.value
-  return name?.replace('GMT', '') || '+01:00'
-}
-
 // "Heute, 14:05" / "Gestern, 09:12" / "27.10.2026" (Berlin time) → Date
 export function parseGermanDate(text: string, now = new Date()): Date | undefined {
   const t = text.trim()
   const time = t.match(/(\d{1,2}):(\d{2})/)
-  const ymd = (d: Date) =>
-    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d)
   let day: string | undefined
-  if (/^heute/i.test(t)) day = ymd(now)
-  else if (/^gestern/i.test(t)) day = ymd(new Date(now.getTime() - 24 * 60 * 60 * 1000))
+  if (/^heute/i.test(t)) day = ymdInZone(now, TZ)
+  else if (/^gestern/i.test(t)) day = addDays(ymdInZone(now, TZ), -1)
   else {
     const m = t.match(/(\d{2})\.(\d{2})\.(\d{4})/)
     if (m) day = `${m[3]}-${m[2]}-${m[1]}`
   }
   if (!day) return undefined
-  const hhmm = time ? `${time[1].padStart(2, '0')}:${time[2]}` : '12:00'
-  return new Date(`${day}T${hhmm}:00${berlinOffset(new Date(`${day}T12:00:00Z`))}`)
+  return zonedTime(day, time ? `${time[1].padStart(2, '0')}:${time[2]}` : '12:00', TZ)
 }
 
 export function parseKleinanzeigen(html: string, now = new Date()): Listing[] {

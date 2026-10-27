@@ -24,6 +24,7 @@ import { Users } from './collections/Users'
 import { Settings } from './globals/Settings'
 import { fetchFxRates, runDeals } from './jobs/deals'
 import { fetchNews } from './jobs/fetchNews'
+import { prepareDigest } from './jobs/prepareDigest'
 import { migrations } from './migrations'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -59,11 +60,12 @@ export default buildConfig({
   ],
   globals: [Settings],
   jobs: {
-    tasks: [fetchNews, runDeals, fetchFxRates],
+    tasks: [fetchNews, runDeals, fetchFxRates, prepareDigest],
     // Each cron tick queues due scheduled tasks and runs what is in the queue.
     autoRun: [
       { cron: '* * * * *', queue: 'news' },
       { cron: '* * * * *', queue: 'deals' },
+      { cron: '* * * * *', queue: 'newsletter' },
     ],
     access: { run: ({ req }) => req.user?.role === 'admin' },
   },

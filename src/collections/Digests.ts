@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
-import { adminsOnly, hiddenFromContributors } from '../access'
+import { adminsOnly, hiddenFromContributors, isAdminUser } from '../access'
+import { createDigestDraft } from '../lib/newsletter/digest'
+import { sendDigest } from '../lib/newsletter/send'
 
 export const Digests: CollectionConfig = {
   slug: 'digests',
@@ -8,9 +10,40 @@ export const Digests: CollectionConfig = {
     defaultColumns: ['subject', 'weekOf', 'status'],
     group: 'Newsletter',
     hidden: hiddenFromContributors,
+    components: { beforeListTable: ['/admin/DigestActions#GenerateDigestButton'] },
   },
   access: adminsOnly,
+  endpoints: [
+    {
+      path: '/generate',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminUser(req)) return Response.json({ error: 'Forbidden' }, { status: 403 })
+        const digest = await createDigestDraft(req.payload, new Date())
+        return Response.json({ id: digest.id })
+      },
+    },
+    {
+      path: '/:id/send',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminUser(req)) return Response.json({ error: 'Forbidden' }, { status: 403 })
+        const { test } = req.json ? await req.json() : { test: false }
+        try {
+          const result = await sendDigest(req.payload, Number(req.routeParams?.id), { testTo: test ? req.user!.email : undefined })
+          return Response.json(result)
+        } catch (err) {
+          return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status: 400 })
+        }
+      },
+    },
+  ],
   fields: [
+    {
+      name: 'actions',
+      type: 'ui',
+      admin: { components: { Field: '/admin/DigestActions#DigestActions' } },
+    },
     { name: 'subject', type: 'text', required: true },
     { name: 'weekOf', type: 'date', required: true },
     {

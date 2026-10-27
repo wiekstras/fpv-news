@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import React from 'react'
+import { NewsletterSignup } from '@/components/NewsletterSignup'
 import './styles.css'
 
 const siteUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
@@ -34,11 +35,15 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
           </nav>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        <div className="mx-auto max-w-6xl px-4">
+          <NewsletterSignup />
+        </div>
         <footer className="mt-16 border-t border-border">
           <div className="osd mx-auto flex max-w-6xl flex-wrap gap-4 px-4 py-6 text-muted">
             <span>© {new Date().getFullYear()} FPV News</span>
             <span>Links to original sources · we never republish articles</span>
-            <Link href="/admin" className="ml-auto hover:text-accent">Log in</Link>
+            <Link href="/privacy" className="ml-auto hover:text-accent">Privacy</Link>
+            <Link href="/admin" className="hover:text-accent">Log in</Link>
           </div>
         </footer>
       </body>
