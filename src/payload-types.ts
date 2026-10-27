@@ -79,6 +79,7 @@ export interface Config {
     'email-events': EmailEvent;
     'saved-searches': SavedSearch;
     listings: Listing;
+    'fx-rates': FxRate;
     users: User;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
@@ -104,6 +105,7 @@ export interface Config {
     'email-events': EmailEventsSelect<false> | EmailEventsSelect<true>;
     'saved-searches': SavedSearchesSelect<false> | SavedSearchesSelect<true>;
     listings: ListingsSelect<false> | ListingsSelect<true>;
+    'fx-rates': FxRatesSelect<false> | FxRatesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
@@ -131,6 +133,8 @@ export interface Config {
   jobs: {
     tasks: {
       fetchNews: TaskFetchNews;
+      runDeals: TaskRunDeals;
+      fetchFxRates: TaskFetchFxRates;
       inline: {
         input: unknown;
         output: unknown;
@@ -279,6 +283,7 @@ export interface User {
   name: string;
   role: 'admin' | 'contributor';
   lastDealsVisitAt?: string | null;
+  dealsSeenBefore?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -483,13 +488,27 @@ export interface SavedSearch {
    * Email me when a new match is under this price (EUR). Empty = no alert.
    */
   alertBelow?: number | null;
+  /**
+   * Comma-separated words that drop a listing when they appear in its title, e.g. "defekt, kapot, broken".
+   */
+  excludeKeywords?: string | null;
+  /**
+   * Empty = every country the sources cover.
+   */
   countries?:
     ('NL' | 'BE' | 'DE' | 'AT' | 'FR' | 'IT' | 'ES' | 'PT' | 'PL' | 'CZ' | 'DK' | 'SE' | 'IE' | 'GB')[] | null;
+  /**
+   * Empty = every source enabled in Settings → Deals.
+   */
   sources?:
     | ('ebay' | 'marktplaats' | 'kleinanzeigen' | 'subito' | 'wallapop' | 'milanuncios' | 'leboncoin' | 'vinted')[]
     | null;
   active?: boolean | null;
   lastRunAt?: string | null;
+  /**
+   * Per source: listings found / new, or the error.
+   */
+  lastResult?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -514,6 +533,21 @@ export interface Listing {
   savedSearch?: (number | null) | SavedSearch;
   state: 'new' | 'interesting' | 'ignored';
   alertedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "fx-rates".
+ */
+export interface FxRate {
+  id: number;
+  currency: string;
+  /**
+   * Units of this currency per 1 EUR
+   */
+  rate: number;
+  date: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -586,7 +620,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'fetchNews';
+        taskSlug: 'inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates';
         taskID: string;
         input?:
           | {
@@ -619,7 +653,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'fetchNews') | null;
+  taskSlug?: ('inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -689,6 +723,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'listings';
         value: number | Listing;
+      } | null)
+    | ({
+        relationTo: 'fx-rates';
+        value: number | FxRate;
       } | null)
     | ({
         relationTo: 'users';
@@ -948,10 +986,12 @@ export interface SavedSearchesSelect<T extends boolean = true> {
   minPrice?: T;
   maxPrice?: T;
   alertBelow?: T;
+  excludeKeywords?: T;
   countries?: T;
   sources?: T;
   active?: T;
   lastRunAt?: T;
+  lastResult?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -980,12 +1020,24 @@ export interface ListingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "fx-rates_select".
+ */
+export interface FxRatesSelect<T extends boolean = true> {
+  currency?: T;
+  rate?: T;
+  date?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   role?: T;
   lastDealsVisitAt?: T;
+  dealsSeenBefore?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1094,6 +1146,10 @@ export interface Setting {
    * Generate short summaries and tags with the Claude API (needs ANTHROPIC_API_KEY). When off, items show no summary.
    */
   claudeSummaries?: boolean | null;
+  /**
+   * Sources the deals radar may query. eBay uses the official API. Marktplaats/2dehands and Kleinanzeigen read public search pages: only enable them if their terms allow it for you (or you have their permission). robots.txt is always respected.
+   */
+  enabledDealSources?: ('ebay' | 'marktplaats' | 'kleinanzeigen')[] | null;
   digestDay: '0' | '1' | '2' | '3' | '4' | '5' | '6';
   /**
    * HH:mm, Europe/Amsterdam. The draft is prepared then; you send it.
@@ -1129,6 +1185,7 @@ export interface SettingsSelect<T extends boolean = true> {
   tagline?: T;
   adminEmail?: T;
   claudeSummaries?: T;
+  enabledDealSources?: T;
   digestDay?: T;
   digestTime?: T;
   updatedAt?: T;
@@ -1160,6 +1217,22 @@ export interface CollectionsWidget {
  * via the `definition` "TaskFetchNews".
  */
 export interface TaskFetchNews {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRunDeals".
+ */
+export interface TaskRunDeals {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskFetchFxRates".
+ */
+export interface TaskFetchFxRates {
   input?: unknown;
   output?: unknown;
 }

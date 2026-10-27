@@ -1,0 +1,31 @@
+import type { DealSource } from './options'
+
+// The common shape every adapter returns.
+export type Listing = {
+  source: DealSource
+  externalId: string
+  title: string
+  price: number | null
+  currency: string
+  location?: string
+  country: string
+  url: string
+  image?: string
+  postedAt?: Date
+}
+
+export type SearchQuery = {
+  keywords: string
+  minPrice?: number | null // EUR
+  maxPrice?: number | null // EUR
+  countries: string[] // empty = every country the adapter covers
+}
+
+export type Fetcher = (url: string, init?: { headers?: Record<string, string>; respectRobots?: boolean; method?: string; body?: string }) => Promise<string>
+
+export type Adapter = {
+  source: DealSource
+  // Countries this source can search.
+  countries: string[]
+  search: (query: SearchQuery, fetch: Fetcher) => Promise<Listing[]>
+}

@@ -11,6 +11,7 @@ import { AffiliateLinks } from './collections/AffiliateLinks'
 import { Builds } from './collections/Builds'
 import { Digests } from './collections/Digests'
 import { EmailEvents } from './collections/EmailEvents'
+import { FxRates } from './collections/FxRates'
 import { Listings } from './collections/Listings'
 import { Media } from './collections/Media'
 import { NewsItems } from './collections/NewsItems'
@@ -21,6 +22,7 @@ import { Sources } from './collections/Sources'
 import { Subscribers } from './collections/Subscribers'
 import { Users } from './collections/Users'
 import { Settings } from './globals/Settings'
+import { fetchFxRates, runDeals } from './jobs/deals'
 import { fetchNews } from './jobs/fetchNews'
 import { migrations } from './migrations'
 
@@ -32,6 +34,12 @@ export default buildConfig({
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · FPV News' },
+    components: {
+      afterNavLinks: ['/admin/DealsClient#DealsNavLink'],
+      views: {
+        deals: { Component: '/admin/DealsView#DealsView', path: '/deals', meta: { title: 'Deals radar' } },
+      },
+    },
   },
   collections: [
     NewsItems,
@@ -46,13 +54,17 @@ export default buildConfig({
     EmailEvents,
     SavedSearches,
     Listings,
+    FxRates,
     Users,
   ],
   globals: [Settings],
   jobs: {
-    tasks: [fetchNews],
+    tasks: [fetchNews, runDeals, fetchFxRates],
     // Each cron tick queues due scheduled tasks and runs what is in the queue.
-    autoRun: [{ cron: '* * * * *', queue: 'news' }],
+    autoRun: [
+      { cron: '* * * * *', queue: 'news' },
+      { cron: '* * * * *', queue: 'deals' },
+    ],
     access: { run: ({ req }) => req.user?.role === 'admin' },
   },
   editor: lexicalEditor(),

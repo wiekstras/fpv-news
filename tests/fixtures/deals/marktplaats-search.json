@@ -1,0 +1,41 @@
+{
+  "listings": [
+    {
+      "itemId": "m2123456789",
+      "title": "DJI Goggles 2 + O3 air unit",
+      "description": "Weinig gebruikt, in doos.",
+      "categorySpecificDescription": "Weinig gebruikt",
+      "thinContent": false,
+      "priceInfo": { "priceCents": 32500, "priceType": "FIXED" },
+      "location": { "cityName": "Utrecht", "countryName": "Nederland", "countryAbbreviation": "NL", "distanceMeters": -1000, "isBuyerLocation": false, "onCountryLevel": false, "abroad": false, "latitude": 52.09, "longitude": 5.12 },
+      "date": "2026-10-27T09:12:00Z",
+      "imageUrls": ["//images.marktplaats.com/api/v1/listing-mp-p/images/aa/aa111.jpg?rule=ecg_mp_eps$_82"],
+      "sellerInformation": { "sellerId": 123, "sellerName": "Jan", "showSoiUrl": true },
+      "categoryId": 1234,
+      "priorityProduct": "NONE",
+      "videoOnVip": false,
+      "urgencyFeatureActive": false,
+      "napAvailable": false,
+      "attributes": [],
+      "traits": [],
+      "verticals": ["hobby_and_leisure"],
+      "pictures": [{ "id": 1, "mediumUrl": "https://images.marktplaats.com/api/v1/listing-mp-p/images/aa/aa111.jpg?rule=ecg_mp_eps$_82", "largeUrl": "https://images.marktplaats.com/api/v1/listing-mp-p/images/aa/aa111.jpg?rule=ecg_mp_eps$_85" }],
+      "vipUrl": "/v/hobby-en-vrije-tijd/modelbouw-radiografisch-vliegtuigen/m2123456789-dji-goggles-2-o3-air-unit"
+    },
+    {
+      "itemId": "m2987654321",
+      "title": "FPV drone 5 inch, bieden",
+      "priceInfo": { "priceCents": 0, "priceType": "SEE_DESCRIPTION" },
+      "location": { "cityName": "Gent", "countryAbbreviation": "BE" },
+      "date": "Gisteren",
+      "imageUrls": [],
+      "vipUrl": "/v/hobby-en-vrije-tijd/m2987654321-fpv-drone-5-inch"
+    },
+    {
+      "itemId": "a1234",
+      "title": "Advertentie zonder link wordt overgeslagen"
+    }
+  ],
+  "totalResultCount": 3,
+  "maxAllowedPageNumber": 100
+}

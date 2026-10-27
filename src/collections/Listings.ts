@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { adminsOnly, hiddenFromContributors } from '../access'
-import { DEAL_SOURCES } from '../lib/deals'
+import { adminsOnly, hiddenFromContributors, isAdminUser } from '../access'
+import { DEAL_SOURCES } from '../lib/deals/options'
 
 export const Listings: CollectionConfig = {
   slug: 'listings',
@@ -11,6 +11,18 @@ export const Listings: CollectionConfig = {
     hidden: hiddenFromContributors,
   },
   access: adminsOnly,
+  endpoints: [
+    {
+      // Queues a deals run; the job queue picks it up within a minute.
+      path: '/run-now',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminUser(req)) return Response.json({ error: 'Forbidden' }, { status: 403 })
+        await req.payload.jobs.queue({ task: 'runDeals', queue: 'deals', input: {} })
+        return Response.json({ queued: true })
+      },
+    },
+  ],
   defaultSort: '-firstSeenAt',
   indexes: [{ fields: ['source', 'externalId'], unique: true }],
   fields: [

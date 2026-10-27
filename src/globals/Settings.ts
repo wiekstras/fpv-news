@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload'
 import { admins, hiddenFromContributors } from '../access'
+import { ADAPTERS } from '../lib/deals/adapters'
+import { DEAL_SOURCES } from '../lib/deals/options'
 
 export const Settings: GlobalConfig = {
   slug: 'settings',
@@ -36,6 +38,22 @@ export const Settings: GlobalConfig = {
               admin: {
                 description:
                   'Generate short summaries and tags with the Claude API (needs ANTHROPIC_API_KEY). When off, items show no summary.',
+              },
+            },
+          ],
+        },
+        {
+          label: 'Deals',
+          fields: [
+            {
+              name: 'enabledDealSources',
+              type: 'select',
+              hasMany: true,
+              defaultValue: ['ebay'],
+              options: DEAL_SOURCES.filter((s) => s.value in ADAPTERS),
+              admin: {
+                description:
+                  'Sources the deals radar may query. eBay uses the official API. Marktplaats/2dehands and Kleinanzeigen read public search pages: only enable them if their terms allow it for you (or you have their permission). robots.txt is always respected.',
               },
             },
           ],

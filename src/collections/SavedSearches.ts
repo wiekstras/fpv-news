@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { adminsOnly, hiddenFromContributors } from '../access'
-import { COUNTRIES, DEAL_SOURCES } from '../lib/deals'
+import { COUNTRIES, DEAL_SOURCES } from '../lib/deals/options'
 
 export const SavedSearches: CollectionConfig = {
   slug: 'saved-searches',
@@ -32,9 +32,31 @@ export const SavedSearches: CollectionConfig = {
         },
       ],
     },
-    { name: 'countries', type: 'select', hasMany: true, options: COUNTRIES },
-    { name: 'sources', type: 'select', hasMany: true, options: DEAL_SOURCES },
+    {
+      name: 'excludeKeywords',
+      type: 'text',
+      admin: { description: 'Comma-separated words that drop a listing when they appear in its title, e.g. "defekt, kapot, broken".' },
+    },
+    {
+      name: 'countries',
+      type: 'select',
+      hasMany: true,
+      options: COUNTRIES,
+      admin: { description: 'Empty = every country the sources cover.' },
+    },
+    {
+      name: 'sources',
+      type: 'select',
+      hasMany: true,
+      options: DEAL_SOURCES,
+      admin: { description: 'Empty = every source enabled in Settings → Deals.' },
+    },
     { name: 'active', type: 'checkbox', defaultValue: true },
     { name: 'lastRunAt', type: 'date', admin: { readOnly: true, position: 'sidebar' } },
+    {
+      name: 'lastResult',
+      type: 'textarea',
+      admin: { readOnly: true, position: 'sidebar', description: 'Per source: listings found / new, or the error.' },
+    },
   ],
 }

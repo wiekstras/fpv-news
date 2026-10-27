@@ -46,8 +46,15 @@ export const Users: CollectionConfig = {
       ],
       access: { create: adminsField, update: adminsField },
     },
+    // Deals dashboard: listings first seen after dealsSeenBefore are highlighted as new.
     {
       name: 'lastDealsVisitAt',
+      type: 'date',
+      admin: { hidden: true },
+      access: { read: adminsField, update: adminsField },
+    },
+    {
+      name: 'dealsSeenBefore',
       type: 'date',
       admin: { hidden: true },
       access: { read: adminsField, update: adminsField },

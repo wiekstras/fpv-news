@@ -1,0 +1,33 @@
+
+/* Deals radar dashboard (/admin/deals) */
+.deals {
+  padding: var(--base) var(--gutter-h);
+  &__header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--base); flex-wrap: wrap; }
+  &__muted { color: var(--theme-elevation-500); font-size: 0.85em; }
+  &__searches { display: flex; flex-wrap: wrap; gap: calc(var(--base) / 2); margin: var(--base) 0; }
+  &__search {
+    border: 1px solid var(--theme-elevation-150); border-radius: 6px; padding: 8px 12px; text-decoration: none; color: inherit;
+    pre { margin: 4px 0 0; font-size: 0.8em; white-space: pre-wrap; color: var(--theme-elevation-600); }
+  }
+  &__filters {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: var(--base);
+    input, select { padding: 6px 8px; border: 1px solid var(--theme-elevation-150); border-radius: 4px; background: var(--theme-input-bg); color: var(--theme-text); }
+    input[type='number'] { width: 90px; }
+    button { padding: 6px 14px; cursor: pointer; }
+  }
+  &__table {
+    width: 100%; border-collapse: collapse;
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--theme-elevation-100); vertical-align: top; }
+    img { width: 72px; height: 54px; object-fit: cover; border-radius: 4px; }
+    tr.is-new { background: color-mix(in srgb, var(--theme-success-500) 10%, transparent); }
+    tr.is-ignored { opacity: 0.5; }
+    tr.is-interesting td:nth-child(2) a { font-weight: 600; }
+  }
+  &__badge { background: var(--theme-success-500); color: #000; font-size: 0.7em; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-right: 6px; }
+  &__actions {
+    display: flex; gap: 4px;
+    button { cursor: pointer; border: 1px solid var(--theme-elevation-200); background: none; color: inherit; border-radius: 4px; width: 32px; height: 32px; }
+    button[aria-pressed='true'] { background: var(--theme-elevation-800); color: var(--theme-elevation-0); }
+  }
+  &__pages { display: flex; gap: var(--base); margin-top: var(--base); align-items: center; }
+}

@@ -12,7 +12,7 @@ Next.js (App Router) + Payload CMS 3 in one app, PostgreSQL, Tailwind CSS. Backg
 | 2 | News aggregator + public feed | ✅ done |
 | 3 | DIY builds + moderation + affiliate links | ✅ done |
 | 4 | Newsletter (double opt-in, weekly draft + send) | ⏳ next |
-| 5 | Deals radar, one source at a time | |
+| 5 | Deals radar, one source at a time | ✅ eBay, Marktplaats/2dehands, Kleinanzeigen |
 | 6 | Deploy to Railway | |
 
 ## Local setup
@@ -90,6 +90,61 @@ Without `RESEND_API_KEY`, Payload only logs that an email was attempted (recipie
 - **Public pages:** `/builds` (filter by frame size and difficulty), `/builds/<slug>`; the three newest builds also
   appear on the homepage.
 
+## Deals radar (admin only)
+
+Dashboard: **/admin/deals** (also in the admin sidebar). Not public; contributors are redirected away.
+
+1. **Settings → Deals:** tick the sources the radar may use (default: eBay only). Set *Settings → Site → Admin email*
+   for alerts.
+2. **Deals → Saved searches:** keywords, optional min/max price in EUR, *Alert below* (EUR), exclude words, countries
+   and sources (empty = all).
+3. Searches run **every 3 hours** (job `runDeals`), or press **Run searches now** on the dashboard. Each saved search
+   shows its last result per source, including errors.
+4. On the dashboard: filter by keyword, source, country, price range and state; **NEW** marks listings first seen since
+   your previous visit (a visit = opening the dashboard after 30+ minutes away); ★ marks interesting, ✕ ignores.
+5. When a new listing matches a search under its *Alert below* price, one summary email per run goes to the admin email.
+
+All prices are converted to EUR with the ECB daily reference rates (job `fetchFxRates`, daily ~16:30 CET; fetched on
+the first run if missing). Prices in a currency without a rate stay unconverted and are skipped by price filters.
+
+### How we fetch
+
+Every request goes through `src/lib/deals/http.ts`: a clear user agent (`FPVNewsDealsBot/1.0 (+your site)`), robots.txt
+checked per host (if robots.txt can't be fetched the site is treated as off-limits), one request per host every
+8–12 s, a 15-minute cache, and a 6-hour pause for a host that answers 403/429/503. No logins, no cookies, no captcha or
+bot-protection workarounds. Set `DEALS_CONTACT_EMAIL` to add a contact address to the user agent.
+
+### Sources
+
+| Source | Status | How |
+|---|---|---|
+| eBay (DE, AT, NL, BE, FR, IT, ES, IE, PL, GB) | ✅ enabled by default | Official Browse API. Needs `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` (developer.ebay.com → Application keys, production). Used + unspecified condition, newest first. |
+| Marktplaats (NL) / 2dehands (BE) | ✅ built, **off by default** | The JSON their own search page loads (`/lrp/api/search`). Their terms restrict automated collection: enable only if you have their permission. |
+| Kleinanzeigen (DE) | ✅ built, **off by default** | Public search results page. Same note on terms/permission. |
+| Subito (IT) | ⏸ not built | Couldn't inspect its pages from the build environment; next candidate once it can be checked. |
+| Wallapop / Milanuncios (ES) | ⏸ not built | Wallapop's search runs through an app API with device headers; Milanuncios sits behind bot protection. Neither can be done without working around protections. |
+| leboncoin (FR) | ⛔ skipped | Protected by DataDome bot protection; automated access would mean bypassing it. |
+| Vinted | ⛔ skipped | Search requires a session cookie and is behind bot protection; its terms forbid scraping. |
+| Facebook Marketplace | ⛔ out of scope | As agreed. |
+
+**Not yet verified live.** The build environment had no access to these sites, so the Marktplaats and Kleinanzeigen
+parsers were written against saved samples of their formats (`tests/fixtures/deals`). Before relying on them, run a
+live check (no database needed):
+
+```bash
+pnpm deals:check ebay "dji o3" NL,DE
+pnpm deals:check marktplaats "fpv goggles" NL
+pnpm deals:check kleinanzeigen "radiomaster" "" 300
+```
+
+It prints how many listings came back and the first ten. Zero listings or a parse error means the page format changed:
+save a fresh response into `tests/fixtures/deals/` and adjust the parser until `pnpm test` passes.
+
+### Adding a source
+
+Create `src/lib/deals/adapters/<name>.ts` exporting an `Adapter` (`search(query, fetch) → Listing[]`) with a pure
+`parse…()` function, add a fixture + test, then register it in `src/lib/deals/adapters/index.ts`.
+
 ## Roles
 
 | Role | Can do |
@@ -125,8 +180,10 @@ src/
   lib/                small helpers (slugify, tags, rate limit, deal sources, http)
   lib/builds/         build options and parts/affiliate link resolution
   lib/news/           feed parsing, canonical URLs, dedupe, auto-tags, Claude summaries, ingest
-  jobs/               Payload job tasks (news fetching)
-  admin/              custom admin components
+  lib/deals/          deals radar: polite HTTP client, robots.txt, FX, adapters, run logic
+  jobs/               Payload job tasks (news fetching, deals radar, FX rates)
+  scripts/            deals:check live adapter check
+  admin/              custom admin components (sources fetch button, deals dashboard)
   components/         public site components
   seed/               starter data (`pnpm seed`)
   instrumentation.ts  starts Payload (and its job crons) when the server boots

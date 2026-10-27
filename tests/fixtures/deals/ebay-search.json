@@ -1,0 +1,32 @@
+{
+  "href": "https://api.ebay.com/buy/browse/v1/item_summary/search?q=dji+o3&limit=50",
+  "total": 2,
+  "limit": 50,
+  "offset": 0,
+  "itemSummaries": [
+    {
+      "itemId": "v1|186123456789|0",
+      "title": "DJI O3 Air Unit – gebraucht, voll funktionsfähig",
+      "itemGroupType": null,
+      "image": { "imageUrl": "https://i.ebayimg.com/images/g/abc/s-l225.jpg" },
+      "price": { "value": "149.00", "currency": "EUR" },
+      "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C186123456789%7C0",
+      "seller": { "username": "fpv_pilot_de", "feedbackPercentage": "100.0", "feedbackScore": 52 },
+      "condition": "Gebraucht",
+      "conditionId": "3000",
+      "thumbnailImages": [{ "imageUrl": "https://i.ebayimg.com/images/g/abc/s-l1600.jpg" }],
+      "buyingOptions": ["FIXED_PRICE", "BEST_OFFER"],
+      "itemWebUrl": "https://www.ebay.de/itm/186123456789",
+      "itemLocation": { "postalCode": "10115", "country": "DE" },
+      "itemCreationDate": "2026-10-26T18:21:04.000Z"
+    },
+    {
+      "itemId": "v1|186987654321|0",
+      "title": "RadioMaster Boxer ELRS",
+      "thumbnailImages": [{ "imageUrl": "https://i.ebayimg.com/images/g/def/s-l1600.jpg" }],
+      "price": { "value": "95.50", "currency": "EUR" },
+      "itemWebUrl": "https://www.ebay.de/itm/186987654321",
+      "itemLocation": { "city": "München", "postalCode": "80331", "country": "DE" }
+    }
+  ]
+}
