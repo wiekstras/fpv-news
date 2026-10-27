@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+
+/* Colour tokens: light by default, dark when the OS asks for it. */
+:root {
+  --bg: #f6f7f4;
+  --surface: #ffffff;
+  --border: #dfe2da;
+  --fg: #12150f;
+  --muted: #5b6157;
+  --accent: #3f7d00;
+  --accent-fg: #ffffff;
+  --signal: #007f99;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0c0e;
+    --surface: #12161a;
+    --border: #232a31;
+    --fg: #e8ece6;
+    --muted: #8b958e;
+    --accent: #b6ff3b;
+    --accent-fg: #0a0c0e;
+    --signal: #3be0ff;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-signal: var(--signal);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* OSD-style label used for tags, dates and metadata. */
+.osd {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

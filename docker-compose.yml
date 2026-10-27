@@ -1,0 +1,16 @@
+# Local development database. Production runs on Railway (see README).
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fpv
+      POSTGRES_PASSWORD: fpv
+      POSTGRES_DB: fpv
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
