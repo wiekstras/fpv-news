@@ -30,6 +30,7 @@ export const Settings: GlobalConfig = {
           fields: [
             {
               name: 'claudeSummaries',
+              label: 'Generate summaries with Claude',
               type: 'checkbox',
               defaultValue: false,
               admin: {

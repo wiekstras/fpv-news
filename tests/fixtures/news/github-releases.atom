@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+  <id>tag:github.com,2008:https://github.com/betaflight/betaflight/releases</id>
+  <link type="text/html" rel="alternate" href="https://github.com/betaflight/betaflight/releases"/>
+  <link type="application/atom+xml" rel="self" href="https://github.com/betaflight/betaflight/releases.atom"/>
+  <title>Release notes from betaflight</title>
+  <updated>2026-10-15T12:00:00Z</updated>
+  <entry>
+    <id>tag:github.com,2008:Repository/12345/4.6.1</id>
+    <updated>2026-10-15T12:00:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/betaflight/betaflight/releases/tag/4.6.1"/>
+    <title>4.6.1</title>
+    <content type="html">&lt;h2&gt;Fixes&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;Fixed GPS rescue on some targets&lt;/li&gt;&lt;li&gt;Improved blackbox logging&lt;/li&gt;&lt;/ul&gt;</content>
+    <author><name>haslinghuis</name></author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/1?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/12345/4.6.0</id>
+    <updated>2026-08-01T10:00:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/betaflight/betaflight/releases/tag/4.6.0"/>
+    <title>Betaflight 4.6.0</title>
+    <content type="html">&lt;p&gt;Major release.&lt;/p&gt;</content>
+  </entry>
+</feed>

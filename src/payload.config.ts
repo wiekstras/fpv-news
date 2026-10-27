@@ -21,6 +21,7 @@ import { Sources } from './collections/Sources'
 import { Subscribers } from './collections/Subscribers'
 import { Users } from './collections/Users'
 import { Settings } from './globals/Settings'
+import { fetchNews } from './jobs/fetchNews'
 import { migrations } from './migrations'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -48,6 +49,12 @@ export default buildConfig({
     Users,
   ],
   globals: [Settings],
+  jobs: {
+    tasks: [fetchNews],
+    // Each cron tick queues due scheduled tasks and runs what is in the queue.
+    autoRun: [{ cron: '* * * * *', queue: 'news' }],
+    access: { run: ({ req }) => req.user?.role === 'admin' },
+  },
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },

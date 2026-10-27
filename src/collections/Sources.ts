@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { admins, anyone, hiddenFromContributors } from '../access'
+import { admins, anyone, hiddenFromContributors, isAdminUser } from '../access'
+import { fetchSources } from '../lib/news/ingest'
 import { NEWS_TAGS } from '../lib/tags'
 
 export const Sources: CollectionConfig = {
@@ -9,7 +10,19 @@ export const Sources: CollectionConfig = {
     defaultColumns: ['name', 'type', 'active', 'lastFetchedAt', 'lastError'],
     group: 'News',
     hidden: hiddenFromContributors,
+    components: { beforeListTable: ['/admin/FetchNowButton#FetchNowButton'] },
   },
+  endpoints: [
+    {
+      path: '/fetch-now',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminUser(req)) return Response.json({ error: 'Forbidden' }, { status: 403 })
+        const id = req.searchParams.get('id')
+        return Response.json({ results: await fetchSources(req.payload, id ? Number(id) : undefined) })
+      },
+    },
+  ],
   access: { read: anyone, create: admins, update: admins, delete: admins },
   fields: [
     { name: 'name', type: 'text', required: true },

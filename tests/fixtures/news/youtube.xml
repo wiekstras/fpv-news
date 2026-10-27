@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <link rel="self" href="http://www.youtube.com/feeds/videos.xml?channel_id=UCX3eufnI7A2I7IkKHZn8KSQ"/>
+ <id>yt:channel:X3eufnI7A2I7IkKHZn8KSQ</id>
+ <yt:channelId>X3eufnI7A2I7IkKHZn8KSQ</yt:channelId>
+ <title>Joshua Bardwell</title>
+ <author><name>Joshua Bardwell</name><uri>https://www.youtube.com/channel/UCX3eufnI7A2I7IkKHZn8KSQ</uri></author>
+ <published>2014-03-02T19:17:13+00:00</published>
+ <entry>
+  <id>yt:video:abc123XYZ09</id>
+  <yt:videoId>abc123XYZ09</yt:videoId>
+  <yt:channelId>UCX3eufnI7A2I7IkKHZn8KSQ</yt:channelId>
+  <title>How To Set Up ExpressLRS 3.5 – Beginner Guide</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=abc123XYZ09"/>
+  <author><name>Joshua Bardwell</name><uri>https://www.youtube.com/channel/UCX3eufnI7A2I7IkKHZn8KSQ</uri></author>
+  <published>2026-10-20T14:00:12+00:00</published>
+  <updated>2026-10-21T02:11:40+00:00</updated>
+  <media:group>
+   <media:title>How To Set Up ExpressLRS 3.5 – Beginner Guide</media:title>
+   <media:content url="https://www.youtube.com/v/abc123XYZ09?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/abc123XYZ09/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Everything you need to bind and configure an ExpressLRS receiver.</media:description>
+   <media:community><media:starRating count="1500" average="5.00" min="1" max="5"/><media:statistics views="42000"/></media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:def456UVW12</id>
+  <yt:videoId>def456UVW12</yt:videoId>
+  <title>New Goggles Announced!</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=def456UVW12"/>
+  <published>2026-10-24T09:30:00+00:00</published>
+  <media:group>
+   <media:thumbnail url="https://i3.ytimg.com/vi/def456UVW12/hqdefault.jpg" width="480" height="360"/>
+   <media:description>First look at the new goggles.</media:description>
+  </media:group>
+ </entry>
+</feed>

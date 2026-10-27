@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+  <title>Example FPV Blog</title>
+  <link>https://www.example-fpv.com</link>
+  <description>FPV news</description>
+  <item>
+    <title>EASA Publishes New Drone Rules for 2027</title>
+    <link>https://www.example-fpv.com/easa-rules-2027/?utm_source=rss&amp;utm_medium=rss</link>
+    <pubDate>Mon, 26 Oct 2026 08:00:00 +0000</pubDate>
+    <description><![CDATA[<p>The agency released an update to the open category.</p>]]></description>
+    <content:encoded><![CDATA[<p><img src="https://www.example-fpv.com/img/easa.jpg" alt="" /></p><p>The agency released an update to the open category with changes for class C0 drones.</p>]]></content:encoded>
+  </item>
+  <item>
+    <title>Review: The Best 5 Inch Frame of the Year</title>
+    <link>https://www.example-fpv.com/frame-review/</link>
+    <pubDate>Sat, 24 Oct 2026 10:00:00 +0000</pubDate>
+    <enclosure url="https://www.example-fpv.com/img/frame.png" type="image/png" length="1000" />
+    <description>We tested ten frames.</description>
+  </item>
+  <item>
+    <title>Item without a date is skipped</title>
+    <link>https://www.example-fpv.com/no-date/</link>
+  </item>
+</channel>
+</rss>
