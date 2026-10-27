@@ -226,6 +226,7 @@ export interface Build {
    */
   moderationNote?: string | null;
   author?: (number | null) | User;
+  authorName?: string | null;
   publishedAt?: string | null;
   /**
    * One or two sentences shown on cards and in the newsletter.
@@ -781,6 +782,7 @@ export interface BuildsSelect<T extends boolean = true> {
   status?: T;
   moderationNote?: T;
   author?: T;
+  authorName?: T;
   publishedAt?: T;
   excerpt?: T;
   difficulty?: T;

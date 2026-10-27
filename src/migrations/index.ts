@@ -1,5 +1,6 @@
 import * as migration_20261027_185617_initial from './20261027_185617_initial';
 import * as migration_20261027_204836_news_jobs from './20261027_204836_news_jobs';
+import * as migration_20261027_214513_builds_author_name from './20261027_214513_builds_author_name';
 
 export const migrations = [
   {
@@ -10,6 +11,11 @@ export const migrations = [
   {
     up: migration_20261027_204836_news_jobs.up,
     down: migration_20261027_204836_news_jobs.down,
-    name: '20261027_204836_news_jobs'
+    name: '20261027_204836_news_jobs',
+  },
+  {
+    up: migration_20261027_214513_builds_author_name.up,
+    down: migration_20261027_214513_builds_author_name.down,
+    name: '20261027_214513_builds_author_name'
   },
 ];

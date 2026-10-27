@@ -1,9 +1,60 @@
-import { APIError, type Access, type CollectionConfig, type Where } from 'payload'
+import {
+  APIError,
+  type Access,
+  type CollectionAfterChangeHook,
+  type CollectionConfig,
+  type Where,
+} from 'payload'
+import type { Build } from '@/payload-types'
 import { adminsField, isAdminUser, loggedIn } from '../access'
+import { DIFFICULTIES, FRAME_SIZES } from '../lib/builds/options'
 import { slugify } from '../lib/slugify'
 import { BUILD_TAGS } from '../lib/tags'
 
 const editableStatuses = ['draft', 'pending']
+const siteUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+
+// Emails for the moderation flow. Failures are logged, never block the save.
+const notifyOnStatusChange: CollectionAfterChangeHook<Build> = async ({ context, doc, previousDoc, req }) => {
+  if (context.skipNotifications || doc.status === previousDoc?.status) return doc
+  const authorId = typeof doc.author === 'object' ? doc.author?.id : doc.author
+  const author = authorId
+    ? await req.payload.findByID({ collection: 'users', id: authorId, depth: 0, overrideAccess: true, req })
+    : null
+  let message: { to: string; subject: string; text: string } | null = null
+
+  if (doc.status === 'pending') {
+    const { adminEmail } = await req.payload.findGlobal({ slug: 'settings', overrideAccess: true, req })
+    if (adminEmail) {
+      message = {
+        to: adminEmail,
+        subject: `Build to review: ${doc.title}`,
+        text: `${author?.name ?? 'Someone'} submitted "${doc.title}".\n\nReview it: ${siteUrl}/admin/collections/builds/${doc.id}`,
+      }
+    }
+  } else if (doc.status === 'published' && author) {
+    message = {
+      to: author.email,
+      subject: `Your build is live: ${doc.title}`,
+      text: `Thanks for sharing! "${doc.title}" is now published:\n${siteUrl}/builds/${doc.slug}`,
+    }
+  } else if (doc.status === 'draft' && previousDoc?.status === 'pending' && author && isAdminUser(req)) {
+    message = {
+      to: author.email,
+      subject: `Changes requested: ${doc.title}`,
+      text: `Your build "${doc.title}" was sent back to draft.\n\n${doc.moderationNote ?? ''}\n\nEdit it: ${siteUrl}/admin/collections/builds/${doc.id}`,
+    }
+  }
+
+  if (message) {
+    try {
+      await req.payload.sendEmail(message)
+    } catch (err) {
+      req.payload.logger.error({ err }, 'Failed to send build moderation email')
+    }
+  }
+  return doc
+}
 
 // Public: published builds. Contributors: published + their own. Admins: all.
 const readBuilds: Access = ({ req }) => {
@@ -19,6 +70,8 @@ export const Builds: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'author', 'status', 'updatedAt'],
     description: 'Write up your build, then set the status to "Pending review" to submit it.',
+    // Contributors only see their own builds in the admin list.
+    baseFilter: ({ req }) => (isAdminUser(req) || !req.user ? null : { author: { equals: req.user.id } }),
   },
   access: {
     read: readBuilds,
@@ -42,9 +95,10 @@ export const Builds: CollectionConfig = {
       },
     ],
     beforeChange: [
-      ({ data, operation, originalDoc, req }) => {
-        if (!isAdminUser(req)) {
-          if (operation === 'create') data.author = req.user?.id
+      async ({ data, operation, originalDoc, req }) => {
+        // Logged-in non-admins (contributors). Server code without a user (seeds, jobs) is trusted.
+        if (req.user && !isAdminUser(req)) {
+          if (operation === 'create') data.author = req.user.id
           if (!editableStatuses.includes(data.status ?? 'draft')) {
             throw new APIError('Only admins can publish builds.', 403, null, true)
           }
@@ -52,9 +106,18 @@ export const Builds: CollectionConfig = {
         if (data.status === 'published' && originalDoc?.status !== 'published' && !data.publishedAt) {
           data.publishedAt = new Date().toISOString()
         }
+        // Store the author's display name so public pages don't need access to user records.
+        // Always recomputed, so a submitted authorName is ignored.
+        const authorId = typeof data.author === 'object' ? data.author?.id : (data.author ?? originalDoc?.author)
+        data.authorName = null
+        if (authorId) {
+          const author = await req.payload.findByID({ collection: 'users', id: authorId, depth: 0, overrideAccess: true, req })
+          data.authorName = author.name
+        }
         return data
       },
     ],
+    afterChange: [notifyOnStatusChange],
   },
   fields: [
     { name: 'title', type: 'text', required: true },
@@ -91,6 +154,7 @@ export const Builds: CollectionConfig = {
       access: { update: adminsField },
       admin: { position: 'sidebar' },
     },
+    { name: 'authorName', type: 'text', admin: { position: 'sidebar', readOnly: true } },
     { name: 'publishedAt', type: 'date', index: true, admin: { position: 'sidebar', readOnly: true } },
     {
       name: 'excerpt',
@@ -105,20 +169,13 @@ export const Builds: CollectionConfig = {
           name: 'difficulty',
           type: 'select',
           required: true,
-          options: [
-            { label: 'Beginner', value: 'beginner' },
-            { label: 'Intermediate', value: 'intermediate' },
-            { label: 'Advanced', value: 'advanced' },
-          ],
+          options: DIFFICULTIES,
         },
         {
           name: 'frameSize',
           type: 'select',
           required: true,
-          options: ['whoop', '2"', '2.5"', '3"', '3.5"', '4"', '5"', '6"', '7"', '8"+'].map((v) => ({
-            label: v === 'whoop' ? 'Whoop (65–75mm)' : v,
-            value: v,
-          })),
+          options: FRAME_SIZES,
         },
       ],
     },

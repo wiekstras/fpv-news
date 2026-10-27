@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
   const payload = await getPayload({ config })
-  const [news, sources] = await Promise.all([
+  const [news, sources, builds] = await Promise.all([
     payload.find({
       collection: 'news-items',
       where: { hidden: { not_equals: true } },
@@ -18,11 +18,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       depth: 0,
     }),
     payload.find({ collection: 'sources', where: { active: { equals: true } }, pagination: false, select: { slug: true } }),
+    payload.find({
+      collection: 'builds',
+      where: { status: { equals: 'published' } },
+      pagination: false,
+      select: { slug: true, updatedAt: true },
+      depth: 0,
+    }),
   ])
   return [
     { url: `${base}/`, changeFrequency: 'hourly', priority: 1 },
     ...NEWS_TAGS.map((t) => ({ url: `${base}/news/tag/${t.value}`, changeFrequency: 'daily' as const })),
     ...sources.docs.map((s) => ({ url: `${base}/news/source/${s.slug}`, changeFrequency: 'daily' as const })),
+    { url: `${base}/builds`, changeFrequency: 'daily' as const },
+    ...builds.docs.map((b) => ({ url: `${base}/builds/${b.slug}`, lastModified: b.updatedAt })),
     ...news.docs.map((n) => ({ url: `${base}/news/${n.slug}`, lastModified: n.updatedAt })),
   ]
 }

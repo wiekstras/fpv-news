@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/typography';
 
 /* Colour tokens: light by default, dark when the OS asks for it. */
 :root {

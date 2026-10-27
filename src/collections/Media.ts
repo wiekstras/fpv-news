@@ -1,8 +1,12 @@
 import type { CollectionConfig } from 'payload'
-import { adminsOrOwner, anyone, loggedIn } from '../access'
+import { adminsOrOwner, anyone, isAdminUser, loggedIn } from '../access'
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  admin: {
+    // Contributors only see (and can pick) their own uploads in the admin.
+    baseFilter: ({ req }) => (isAdminUser(req) || !req.user ? null : { uploadedBy: { equals: req.user.id } }),
+  },
   access: {
     read: anyone,
     create: loggedIn,

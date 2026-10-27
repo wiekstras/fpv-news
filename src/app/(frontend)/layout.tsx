@@ -23,8 +23,9 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
             </Link>
             <div className="ml-auto flex items-center gap-5 text-sm">
               <Link href="/" className="hover:text-accent">News</Link>
+              <Link href="/builds" className="hover:text-accent">Builds</Link>
               <Link
-                href="/register"
+                href="/submit"
                 className="rounded-md bg-accent px-3 py-1.5 font-medium text-accent-fg hover:opacity-90"
               >
                 Submit a build

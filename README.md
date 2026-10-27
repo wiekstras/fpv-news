@@ -10,8 +10,8 @@ Next.js (App Router) + Payload CMS 3 in one app, PostgreSQL, Tailwind CSS. Backg
 |---|---|---|
 | 1 | Setup, auth/roles, collections, base layout | ✅ done |
 | 2 | News aggregator + public feed | ✅ done |
-| 3 | DIY builds + moderation + affiliate links | ⏳ next |
-| 4 | Newsletter (double opt-in, weekly draft + send) | |
+| 3 | DIY builds + moderation + affiliate links | ✅ done |
+| 4 | Newsletter (double opt-in, weekly draft + send) | ⏳ next |
 | 5 | Deals radar, one source at a time | |
 | 6 | Deploy to Railway | |
 
@@ -28,7 +28,8 @@ pnpm dev                      # http://localhost:3000
 
 Open http://localhost:3000/admin and create the first account: **the first user automatically becomes admin.**
 
-Load the starter news sources (Betaflight, INAV, ExpressLRS, EdgeTX releases, a YouTube channel and a blog):
+Load starter data: news sources (Betaflight, INAV, ExpressLRS, EdgeTX releases, a YouTube channel and a blog) and one
+example build with photos, a parts catalog, two placeholder retailers and affiliate links:
 
 ```bash
 pnpm seed
@@ -70,6 +71,25 @@ Without `RESEND_API_KEY`, Payload only logs that an email was attempted (recipie
 - **Public pages:** `/` (feed), `/news/tag/<tag>`, `/news/source/<slug>`, `/news/<slug>` (detail with outbound link),
   plus `/sitemap.xml` and `/robots.txt`.
 
+## DIY builds
+
+- **Submitting:** *Submit a build* (`/submit`) sends logged-in users to the build editor in `/admin` and everyone else
+  to `/register`. Contributors write the post (rich text, photos, parts list, difficulty, frame size, tags) and set the
+  status to *Pending review*. In the admin they only see their own builds and uploads.
+- **Moderation:** draft → pending review → published; only admins can publish. Emails go out on each step: to
+  *Settings → Site → Admin email* when a build is submitted, to the author when it is published, and to the author
+  (with the *Moderation note*) when an admin moves it back to draft.
+- **Parts & affiliate links** live in one place (admin → Affiliate): **Parts**, **Retailers** and **Affiliate links**
+  (part → retailer → URL, with an *Active* switch). A build's parts list either picks a catalog part or uses free text;
+  only catalog parts show shop links, so link a free-text part to a catalog part during moderation to monetise it.
+  Change a URL once and every build using that part updates.
+- **Disclosure:** every page that shows at least one active affiliate link gets the affiliate disclosure at the top,
+  and shop links carry `rel="sponsored nofollow"`. Links inside a build write-up get `rel="ugc nofollow"`.
+- **The seeded retailers are placeholders** (`example.com` / `example.org`): replace them with your real shops and
+  affiliate URLs, or delete them.
+- **Public pages:** `/builds` (filter by frame size and difficulty), `/builds/<slug>`; the three newest builds also
+  appear on the homepage.
+
 ## Roles
 
 | Role | Can do |
@@ -103,6 +123,7 @@ src/
   collections/        one file per Payload collection
   globals/Settings.ts site, news (Claude toggle), newsletter schedule
   lib/                small helpers (slugify, tags, rate limit, deal sources, http)
+  lib/builds/         build options and parts/affiliate link resolution
   lib/news/           feed parsing, canonical URLs, dedupe, auto-tags, Claude summaries, ingest
   jobs/               Payload job tasks (news fetching)
   admin/              custom admin components
