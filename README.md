@@ -288,7 +288,7 @@ Ready to deploy as-is. The repo has a `Dockerfile` and `railway.json`; Railway b
 
 **What happens on boot:** the app waits up to a minute for the database (then exits so Railway restarts it), runs
 pending migrations, loads the starter data if the database is empty (16 news sources + the example build; no user
-accounts), adds any missing marketplaces to the Marketplaces list, and starts the background jobs (news every 15 min, deals every 3 h, digest drafts, exchange rates).
+accounts), adds any missing marketplaces to the Marketplaces list, and starts the background jobs (news every 15 min, deals hourly (each saved search on its own schedule), digest drafts, exchange rates).
 The image is built on Microsoft's Playwright image, so the headless Chromium for the browser-based deal sources is
 included. This whole flow was tested locally with the production image against an empty database.
 
