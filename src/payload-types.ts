@@ -80,6 +80,8 @@ export interface Config {
     'saved-searches': SavedSearch;
     listings: Listing;
     marketplaces: Marketplace;
+    'source-health': SourceHealth;
+    'geo-cache': GeoCache;
     'fx-rates': FxRate;
     users: User;
     'payload-kv': PayloadKv;
@@ -107,6 +109,8 @@ export interface Config {
     'saved-searches': SavedSearchesSelect<false> | SavedSearchesSelect<true>;
     listings: ListingsSelect<false> | ListingsSelect<true>;
     marketplaces: MarketplacesSelect<false> | MarketplacesSelect<true>;
+    'source-health': SourceHealthSelect<false> | SourceHealthSelect<true>;
+    'geo-cache': GeoCacheSelect<false> | GeoCacheSelect<true>;
     'fx-rates': FxRatesSelect<false> | FxRatesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -137,6 +141,7 @@ export interface Config {
       fetchNews: TaskFetchNews;
       runDeals: TaskRunDeals;
       fetchFxRates: TaskFetchFxRates;
+      checkListings: TaskCheckListings;
       prepareDigest: TaskPrepareDigest;
       inline: {
         input: unknown;
@@ -573,6 +578,14 @@ export interface SavedSearch {
         | 'other'
       )[]
     | null;
+  /**
+   * How often this search runs (hours). Use 1 for hot items.
+   */
+  runEveryHours?: number | null;
+  /**
+   * Only listings within this distance of your home location (Settings → Deals). Listings without a location are kept.
+   */
+  maxDistanceKm?: number | null;
   active?: boolean | null;
   lastRunAt?: string | null;
   /**
@@ -627,6 +640,33 @@ export interface Listing {
   savedSearch?: (number | null) | SavedSearch;
   state: 'new' | 'interesting' | 'ignored';
   alertedAt?: string | null;
+  lastSeenAt?: string | null;
+  availability?: ('available' | 'gone') | null;
+  goneAt?: string | null;
+  /**
+   * Earlier prices: [{ price, priceEur, at }]
+   */
+  priceHistory?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Same item posted on another site; shown under that listing.
+   */
+  duplicateOf?: (number | null) | Listing;
+  /**
+   * Why this deal may be too good to be true
+   */
+  warning?: string | null;
+  sellerRating?: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  distanceKm?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -680,6 +720,38 @@ export interface Marketplace {
   notes?: string | null;
   lastRunAt?: string | null;
   lastResult?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "source-health".
+ */
+export interface SourceHealth {
+  id: number;
+  key: string;
+  label: string;
+  lastSuccessAt?: string | null;
+  lastFound?: number | null;
+  lastFailureAt?: string | null;
+  lastError?: string | null;
+  consecutiveFailures?: number | null;
+  /**
+   * Skipped by runs. Untick to resume.
+   */
+  paused?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "geo-cache".
+ */
+export interface GeoCache {
+  id: number;
+  key: string;
+  lat?: number | null;
+  lon?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -767,7 +839,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates' | 'prepareDigest';
+        taskSlug: 'inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates' | 'checkListings' | 'prepareDigest';
         taskID: string;
         input?:
           | {
@@ -800,7 +872,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates' | 'prepareDigest') | null;
+  taskSlug?: ('inline' | 'fetchNews' | 'runDeals' | 'fetchFxRates' | 'checkListings' | 'prepareDigest') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -874,6 +946,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'marketplaces';
         value: number | Marketplace;
+      } | null)
+    | ({
+        relationTo: 'source-health';
+        value: number | SourceHealth;
+      } | null)
+    | ({
+        relationTo: 'geo-cache';
+        value: number | GeoCache;
       } | null)
     | ({
         relationTo: 'fx-rates';
@@ -1146,6 +1226,8 @@ export interface SavedSearchesSelect<T extends boolean = true> {
   excludeKeywords?: T;
   countries?: T;
   sources?: T;
+  runEveryHours?: T;
+  maxDistanceKm?: T;
   active?: T;
   lastRunAt?: T;
   lastResult?: T;
@@ -1175,6 +1257,16 @@ export interface ListingsSelect<T extends boolean = true> {
   savedSearch?: T;
   state?: T;
   alertedAt?: T;
+  lastSeenAt?: T;
+  availability?: T;
+  goneAt?: T;
+  priceHistory?: T;
+  duplicateOf?: T;
+  warning?: T;
+  sellerRating?: T;
+  lat?: T;
+  lon?: T;
+  distanceKm?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1194,6 +1286,33 @@ export interface MarketplacesSelect<T extends boolean = true> {
   notes?: T;
   lastRunAt?: T;
   lastResult?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "source-health_select".
+ */
+export interface SourceHealthSelect<T extends boolean = true> {
+  key?: T;
+  label?: T;
+  lastSuccessAt?: T;
+  lastFound?: T;
+  lastFailureAt?: T;
+  lastError?: T;
+  consecutiveFailures?: T;
+  paused?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "geo-cache_select".
+ */
+export interface GeoCacheSelect<T extends boolean = true> {
+  key?: T;
+  lat?: T;
+  lon?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1344,6 +1463,44 @@ export interface Setting {
       )[]
     | null;
   /**
+   * Your postcode and town, e.g. "3511 Utrecht". Used for distances.
+   */
+  homeLocation?: string | null;
+  homeCountry?:
+    | (
+        | 'NL'
+        | 'BE'
+        | 'LU'
+        | 'DE'
+        | 'AT'
+        | 'FR'
+        | 'IT'
+        | 'ES'
+        | 'PT'
+        | 'IE'
+        | 'PL'
+        | 'CZ'
+        | 'SK'
+        | 'HU'
+        | 'SI'
+        | 'HR'
+        | 'RO'
+        | 'BG'
+        | 'GR'
+        | 'CY'
+        | 'MT'
+        | 'DK'
+        | 'SE'
+        | 'FI'
+        | 'EE'
+        | 'LV'
+        | 'LT'
+        | 'GB'
+      )
+    | null;
+  homeLat?: number | null;
+  homeLon?: number | null;
+  /**
    * Sites that gave you permission for automated searches: their robots.txt is skipped. Request spacing, the clear user agent and stopping at bot checks still apply.
    */
   permittedDealSources?:
@@ -1387,6 +1544,10 @@ export interface SettingsSelect<T extends boolean = true> {
   adminEmail?: T;
   claudeSummaries?: T;
   enabledDealSources?: T;
+  homeLocation?: T;
+  homeCountry?: T;
+  homeLat?: T;
+  homeLon?: T;
   permittedDealSources?: T;
   digestDay?: T;
   digestTime?: T;
@@ -1427,7 +1588,9 @@ export interface TaskFetchNews {
  * via the `definition` "TaskRunDeals".
  */
 export interface TaskRunDeals {
-  input?: unknown;
+  input: {
+    force?: boolean | null;
+  };
   output?: unknown;
 }
 /**
@@ -1435,6 +1598,14 @@ export interface TaskRunDeals {
  * via the `definition` "TaskFetchFxRates".
  */
 export interface TaskFetchFxRates {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCheckListings".
+ */
+export interface TaskCheckListings {
   input?: unknown;
   output?: unknown;
 }

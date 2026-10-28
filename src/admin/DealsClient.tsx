@@ -47,6 +47,21 @@ export function RunDealsButton() {
   )
 }
 
+export function ResumeSourceButton({ id }: { id: number }) {
+  const router = useRouter()
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await fetch(`/api/source-health/${id}/resume`, { method: 'POST', credentials: 'include' })
+        router.refresh()
+      }}
+    >
+      Resume
+    </button>
+  )
+}
+
 // Sidebar link to the dashboard, only for admins.
 export function DealsNavLink() {
   const { user } = useAuth<{ role?: string }>()
@@ -71,6 +86,9 @@ type Found = {
   country: string
   url: string
   image?: string
+  warning?: string | null
+  distanceKm?: number | null
+  sellerRating?: string
 }
 type SearchResponse = {
   listings: Found[]
@@ -97,6 +115,7 @@ export function DealsSearch({ sources }: { sources: { value: string; label: stri
       minPrice: num('minPrice'),
       maxPrice: num('maxPrice'),
       referencePrice: num('referencePrice'),
+      maxDistanceKm: num('maxDistanceKm'),
       excludeKeywords: String(form.get('excludeKeywords') || ''),
       countries: String(form.get('countries') || '')
         .split(',')
@@ -140,6 +159,7 @@ export function DealsSearch({ sources }: { sources: { value: string; label: stri
         <input name="countries" placeholder="Countries, e.g. NL,DE (empty = all)" style={{ minWidth: 200 }} />
         <input name="excludeKeywords" placeholder="Exclude words" />
         <input name="referencePrice" type="number" placeholder="New price € (optional)" style={{ width: 150 }} />
+        <input name="maxDistanceKm" type="number" placeholder="Max km from home" style={{ width: 140 }} />
         <span className="deals__sources">
           {sources.map((s) => (
             <label key={s.value}>
@@ -170,7 +190,11 @@ export function DealsSearch({ sources }: { sources: { value: string; label: stri
                   <td>{l.image ? <img src={l.image} alt="" referrerPolicy="no-referrer" loading="lazy" /> : null}</td>
                   <td>
                     <a href={l.url} target="_blank" rel="noopener noreferrer">{l.title}</a>
-                    <div className="deals__muted">{l.marketplace ?? l.source}</div>
+                    <div className="deals__muted">
+                      {l.marketplace ?? l.source}
+                      {l.sellerRating ? ` · seller ${l.sellerRating}` : ''}
+                    </div>
+                    {l.warning && <div className="deals__warning">⚠ {l.warning}</div>}
                   </td>
                   <td>
                     <strong>{eur(l.priceEur)}</strong>
@@ -185,6 +209,7 @@ export function DealsSearch({ sources }: { sources: { value: string; label: stri
                   </td>
                   <td>
                     {l.country}
+                    {l.distanceKm != null && <strong> · {l.distanceKm} km</strong>}
                     {l.location && <div className="deals__muted">{l.location}</div>}
                   </td>
                 </tr>

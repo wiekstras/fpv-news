@@ -47,3 +47,7 @@
   h2 { margin-top: 0; }
 }
 .deals__sources { display: inline-flex; flex-wrap: wrap; gap: 10px; label { white-space: nowrap; } }
+.deals__warning { color: var(--theme-warning-500); font-size: 0.85em; margin-top: 2px; }
+.deals__badge.is-gone { background: var(--theme-elevation-500); color: var(--theme-elevation-0); }
+.deals__table tr.is-gone { opacity: 0.55; }
+.deals__health { margin: var(--base) 0; summary { cursor: pointer; } }

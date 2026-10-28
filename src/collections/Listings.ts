@@ -3,7 +3,9 @@ import { adminsOnly, hiddenFromContributors, isAdminUser } from '../access'
 import { ebayNewPrices } from '../lib/deals/adapters/ebay'
 import { politeFetch } from '../lib/deals/http'
 import { type DealSource, DEAL_SOURCES } from '../lib/deals/options'
+import { dealWarning } from '../lib/deals/quality'
 import { marketPrice } from '../lib/deals/reference'
+import { distanceKm, geocode } from '../lib/geo'
 import { loadRates } from '../lib/deals/run'
 import { searchAll } from '../lib/deals/search'
 
@@ -31,6 +33,7 @@ export const Listings: CollectionConfig = {
           sources?: DealSource[]
           excludeKeywords?: string
           referencePrice?: number
+          maxDistanceKm?: number
         }
         const keywords = body.keywords?.trim()
         if (!keywords) return Response.json({ error: 'Enter keywords' }, { status: 400 })
@@ -59,7 +62,20 @@ export const Listings: CollectionConfig = {
           rates: await loadRates(req.payload),
           reference,
         })
-        return Response.json({ ...result, reference })
+        // Warnings, and distances when a max distance is asked for (geocoding is cached but limited to 1/s).
+        const home = settings.homeLat != null && settings.homeLon != null ? { lat: settings.homeLat, lon: settings.homeLon } : null
+        const listings = []
+        for (const l of result.listings) {
+          const warning = dealWarning({ discountPct: l.discountPct, sellerFeedbackScore: l.sellerFeedbackScore, sellerFeedbackPct: l.sellerFeedbackPct })
+          let km: number | null = null
+          if (body.maxDistanceKm && home && l.location) {
+            const point = await geocode(req.payload, l.location, l.country).catch(() => null)
+            km = point ? distanceKm(home, point) : null
+            if (km != null && km > body.maxDistanceKm) continue
+          }
+          listings.push({ ...l, warning, distanceKm: km })
+        }
+        return Response.json({ ...result, listings, reference })
       },
     },
     {
@@ -77,7 +93,7 @@ export const Listings: CollectionConfig = {
             or: [{ waitUntil: { exists: false } }, { waitUntil: { less_than_equal: new Date().toISOString() } }],
           },
         })
-        if (totalDocs === 0) await req.payload.jobs.queue({ task: 'runDeals', queue: 'deals', input: {} })
+        if (totalDocs === 0) await req.payload.jobs.queue({ task: 'runDeals', queue: 'deals', input: { force: true } })
         return Response.json({ queued: true })
       },
     },
@@ -129,5 +145,44 @@ export const Listings: CollectionConfig = {
       ],
     },
     { name: 'alertedAt', type: 'date', admin: { readOnly: true } },
+    {
+      type: 'row',
+      fields: [
+        { name: 'lastSeenAt', type: 'date', admin: { readOnly: true } },
+        {
+          name: 'availability',
+          type: 'select',
+          defaultValue: 'available',
+          index: true,
+          options: [
+            { label: 'Available', value: 'available' },
+            { label: 'Gone (sold or removed)', value: 'gone' },
+          ],
+        },
+        { name: 'goneAt', type: 'date', admin: { readOnly: true } },
+      ],
+    },
+    {
+      name: 'priceHistory',
+      type: 'json',
+      admin: { readOnly: true, description: 'Earlier prices: [{ price, priceEur, at }]' },
+    },
+    {
+      name: 'duplicateOf',
+      type: 'relationship',
+      relationTo: 'listings',
+      index: true,
+      admin: { description: 'Same item posted on another site; shown under that listing.' },
+    },
+    { name: 'warning', type: 'text', admin: { description: 'Why this deal may be too good to be true' } },
+    { name: 'sellerRating', type: 'text' },
+    {
+      type: 'row',
+      fields: [
+        { name: 'lat', type: 'number', admin: { readOnly: true } },
+        { name: 'lon', type: 'number', admin: { readOnly: true } },
+        { name: 'distanceKm', type: 'number', index: true, admin: { readOnly: true } },
+      ],
+    },
   ],
 }

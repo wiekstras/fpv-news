@@ -58,6 +58,7 @@ type EbayItem = {
   thumbnailImages?: { imageUrl: string }[]
   itemLocation?: { city?: string; postalCode?: string; country?: string }
   itemCreationDate?: string
+  seller?: { username?: string; feedbackPercentage?: string; feedbackScore?: number }
 }
 
 export function parseEbay(json: string, country: string): Listing[] {
@@ -73,6 +74,11 @@ export function parseEbay(json: string, country: string): Listing[] {
     url: item.itemWebUrl,
     image: item.image?.imageUrl ?? item.thumbnailImages?.[0]?.imageUrl,
     postedAt: item.itemCreationDate ? new Date(item.itemCreationDate) : undefined,
+    ...(item.seller?.feedbackScore != null && {
+      sellerRating: `${item.seller.feedbackPercentage ?? '?'}% positive, ${item.seller.feedbackScore} ratings`,
+      sellerFeedbackScore: item.seller.feedbackScore,
+      sellerFeedbackPct: item.seller.feedbackPercentage ? Number(item.seller.feedbackPercentage) : undefined,
+    }),
   }))
 }
 

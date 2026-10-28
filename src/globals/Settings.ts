@@ -1,12 +1,30 @@
 import type { GlobalConfig } from 'payload'
+import { geocode } from '../lib/geo'
 import { admins, hiddenFromContributors } from '../access'
 import { ADAPTERS } from '../lib/deals/adapters'
-import { DEAL_SOURCES } from '../lib/deals/options'
+import { COUNTRIES, DEAL_SOURCES } from '../lib/deals/options'
 
 export const Settings: GlobalConfig = {
   slug: 'settings',
   admin: { hidden: hiddenFromContributors },
   access: { read: admins, update: admins },
+  hooks: {
+    beforeChange: [
+      // Turn the home location into coordinates for deal distances.
+      async ({ data, originalDoc, req }) => {
+        const changed = data.homeLocation !== originalDoc?.homeLocation || data.homeCountry !== originalDoc?.homeCountry
+        if (!changed) return data
+        if (!data.homeLocation) return { ...data, homeLat: null, homeLon: null }
+        try {
+          const point = await geocode(req.payload, data.homeLocation, data.homeCountry ?? 'NL')
+          return { ...data, homeLat: point?.lat ?? null, homeLon: point?.lon ?? null }
+        } catch (err) {
+          req.payload.logger.warn({ err }, 'Could not geocode the home location')
+          return data
+        }
+      },
+    ],
+  },
   fields: [
     {
       type: 'tabs',
@@ -55,6 +73,29 @@ export const Settings: GlobalConfig = {
                 description:
                   'Sources the deals radar may query. eBay uses the official API; the others read the sites’ public search pages (leboncoin, Subito, Vinted and Wallapop through a headless browser). Only enable a marketplace if its terms allow it for you or you have its permission.',
               },
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'homeLocation',
+                  type: 'text',
+                  admin: { description: 'Your postcode and town, e.g. "3511 Utrecht". Used for distances.' },
+                },
+                {
+                  name: 'homeCountry',
+                  type: 'select',
+                  defaultValue: 'NL',
+                  options: COUNTRIES,
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                { name: 'homeLat', type: 'number', admin: { readOnly: true } },
+                { name: 'homeLon', type: 'number', admin: { readOnly: true } },
+              ],
             },
             {
               name: 'permittedDealSources',

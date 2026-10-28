@@ -13,7 +13,9 @@ import { Digests } from './collections/Digests'
 import { EmailEvents } from './collections/EmailEvents'
 import { FxRates } from './collections/FxRates'
 import { Listings } from './collections/Listings'
+import { GeoCache } from './collections/GeoCache'
 import { Marketplaces } from './collections/Marketplaces'
+import { SourceHealth } from './collections/SourceHealth'
 import { Media } from './collections/Media'
 import { NewsItems } from './collections/NewsItems'
 import { Parts } from './collections/Parts'
@@ -23,7 +25,7 @@ import { Sources } from './collections/Sources'
 import { Subscribers } from './collections/Subscribers'
 import { Users } from './collections/Users'
 import { Settings } from './globals/Settings'
-import { fetchFxRates, runDeals } from './jobs/deals'
+import { checkListings, fetchFxRates, runDeals } from './jobs/deals'
 import { fetchNews } from './jobs/fetchNews'
 import { prepareDigest } from './jobs/prepareDigest'
 import { migrations } from './migrations'
@@ -58,12 +60,14 @@ export default buildConfig({
     SavedSearches,
     Listings,
     Marketplaces,
+    SourceHealth,
+    GeoCache,
     FxRates,
     Users,
   ],
   globals: [Settings],
   jobs: {
-    tasks: [fetchNews, runDeals, fetchFxRates, prepareDigest],
+    tasks: [fetchNews, runDeals, fetchFxRates, checkListings, prepareDigest],
     // Each cron tick queues due scheduled tasks and runs what is in the queue.
     autoRun: [
       { cron: '* * * * *', queue: 'news' },

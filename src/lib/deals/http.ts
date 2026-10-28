@@ -16,6 +16,12 @@ const BLOCK_BACKOFF_MS = 6 * 60 * 60 * 1000
 
 export class BlockedError extends Error {}
 
+export class HttpError extends Error {
+  constructor(readonly status: number, url: string) {
+    super(`HTTP ${status} for ${url}`)
+  }
+}
+
 const nextSlot = new Map<string, number>()
 const blockedUntil = new Map<string, number>()
 const cache = new Map<string, { body: string; at: number }>()
@@ -90,7 +96,7 @@ export const politeFetch: Fetcher = async (url, init = {}) => {
     markBlocked(host)
     throw new BlockedError(`${host} answered HTTP ${res.status}; pausing this source for 6 hours`)
   }
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`)
+  if (!res.ok) throw new HttpError(res.status, url)
   const body = await res.text()
   if (method === 'GET') cache.set(key, { body, at: Date.now() })
   return body

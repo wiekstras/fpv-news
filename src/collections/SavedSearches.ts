@@ -81,6 +81,24 @@ export const SavedSearches: CollectionConfig = {
       options: DEAL_SOURCES,
       admin: { description: 'Empty = every source enabled in Settings → Deals.' },
     },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'runEveryHours',
+          type: 'number',
+          defaultValue: 3,
+          min: 1,
+          admin: { description: 'How often this search runs (hours). Use 1 for hot items.' },
+        },
+        {
+          name: 'maxDistanceKm',
+          type: 'number',
+          min: 1,
+          admin: { description: 'Only listings within this distance of your home location (Settings → Deals). Listings without a location are kept.' },
+        },
+      ],
+    },
     { name: 'active', type: 'checkbox', defaultValue: true },
     { name: 'lastRunAt', type: 'date', admin: { readOnly: true, position: 'sidebar' } },
     {

@@ -28,6 +28,9 @@ describe('eBay adapter', () => {
       url: 'https://www.ebay.de/itm/186123456789',
       image: 'https://i.ebayimg.com/images/g/abc/s-l225.jpg',
       postedAt: new Date('2026-10-26T18:21:04.000Z'),
+      sellerRating: '100.0% positive, 52 ratings',
+      sellerFeedbackScore: 52,
+      sellerFeedbackPct: 100,
     })
     expect(second).toMatchObject({ price: 95.5, location: '80331 München', image: 'https://i.ebayimg.com/images/g/def/s-l1600.jpg' })
     expect(second.postedAt).toBeUndefined()

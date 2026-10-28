@@ -14,6 +14,10 @@ export type Listing = {
   url: string
   image?: string
   postedAt?: Date
+  // Seller reputation where the site provides it (eBay).
+  sellerRating?: string
+  sellerFeedbackScore?: number
+  sellerFeedbackPct?: number
 }
 
 export type SearchQuery = {
