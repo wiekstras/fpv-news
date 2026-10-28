@@ -12,7 +12,7 @@ Next.js (App Router) + Payload CMS 3 in one app, PostgreSQL, Tailwind CSS. `dock
 | 2 | News aggregator + public feed | ✅ done |
 | 3 | DIY builds + moderation + affiliate links | ✅ done |
 | 4 | Newsletter (double opt-in, weekly draft + send) | ✅ done |
-| 5 | Deals radar | ✅ eBay + 9 dedicated marketplace adapters + 25 generic EU marketplaces |
+| 5 | Deals radar | ✅ eBay + 9 dedicated marketplace adapters + 25 generic EU marketplaces, alerts, health, distance |
 | 6 | Deploy to Railway | ✅ Dockerfile + railway.json (image tested locally) |
 
 ## Local setup
@@ -77,6 +77,11 @@ Without `RESEND_API_KEY`, Payload only logs that an email was attempted (recipie
   cheaper option. Opus/Sonnet requests use the API's server-side fallback, so a declined request is retried on another
   model instead of just failing.
 - **Hide an item** from the public site with the *Hidden* checkbox.
+- **Firmware tracker** (`/firmware`): every GitHub releases source records its latest stable version and any newer
+  pre-release (RC/beta) on each fetch, from the whole feed (also releases older than 60 days).
+- **Channel posts:** new firmware releases (published in the last 48 h) are posted to a Discord webhook
+  (`DISCORD_WEBHOOK_URL`) and/or a Telegram channel (`TELEGRAM_CHANNEL_ID` + `TELEGRAM_BOT_TOKEN`).
+- **Search** (`/search`, box in the header): news and published builds; every word must appear in the title or summary.
 - **Public pages:** `/` (feed), `/news/tag/<tag>`, `/news/source/<slug>`, `/news/<slug>` (detail with outbound link),
   plus `/sitemap.xml` and `/robots.txt`.
 
@@ -96,6 +101,12 @@ Without `RESEND_API_KEY`, Payload only logs that an email was attempted (recipie
   and shop links carry `rel="sponsored nofollow"`. Links inside a build write-up get `rel="ugc nofollow"`.
 - **The seeded retailers are placeholders** (`example.com` / `example.org`): replace them with your real shops and
   affiliate URLs, or delete them.
+- **Click tracking:** shop links go through `/go/<affiliate link id>`; every human click is stored in *Affiliate →
+  Affiliate clicks* (with the build) and counted on the link (*Clicks* column). Bots are not counted.
+- **Build cost:** give affiliate links a *Price* (and/or a price per parts row); the build page shows prices, an
+  estimated total and a shopping list with the cheapest known shop per part.
+- **Comments & likes:** logged-in users can comment (rate-limited; the builder gets an email) and like builds (one like
+  per user). Hide a comment in *Community → Comments*.
 - **Public pages:** `/builds` (filter by frame size and difficulty), `/builds/<slug>`; the three newest builds also
   appear on the homepage.
 
@@ -118,6 +129,8 @@ Without `RESEND_API_KEY`, Payload only logs that an email was attempted (recipie
 - **Stats:** recipients, opened and clicked (unique people) on each digest, from Resend webhooks; raw events are in
   *Email events*. In Resend, enable open and click tracking for your sending domain, and add the webhook (see
   `RESEND_WEBHOOK_SECRET` in `.env.example`). Without `RESEND_API_KEY` (local dev) digests are only logged.
+- **Claude intro:** with *Settings → News → Generate summaries with Claude* on, new drafts get a 2–3 sentence intro
+  written from the week's items; *Rewrite intro with Claude* on the digest page makes a new one. You always review it.
 - A basic `/privacy` page describes what we store. **Review it and add your name/contact before launch.**
 
 ## Deals radar (admin only)
@@ -139,6 +152,26 @@ Dashboard: **/admin/deals** (also in the admin sidebar). Not public; contributor
    your previous visit (a visit = opening the dashboard after 30+ minutes away); ★ marks interesting, ✕ ignores.
 6. When a new listing is under a search's *Alert below* price, or at least *Alert at % below new* cheaper than new, one
    summary email per run goes to the admin email.
+
+### Alerts, schedule and health
+
+- **Schedule:** the deals job runs hourly; each saved search runs when its *Run every N hours* (default 3) has passed.
+  *Run searches now* runs all of them.
+- **Instant alerts:** besides the email, every alert is pushed to **Telegram** (`TELEGRAM_BOT_TOKEN` +
+  `TELEGRAM_CHAT_ID`) and/or **ntfy** (`NTFY_URL`, the free ntfy app on your phone) as soon as the run finds it.
+- **Price drops:** listings keep a price history ("was €149"); when a ★ starred listing gets cheaper you get an alert.
+- **Sold/removed:** every night starred listings are opened; a 404/410 marks them *gone* (hidden unless you tick
+  *show sold/gone*).
+- **Same item on several sites:** a listing with a similar title and a price within 10% of one already found on
+  another site is grouped under it ("Also on: Vinted €152"), hidden by default and never alerted twice.
+- **Too good to be true:** listings 70%+ below the new price, or with a big discount from a new/low-rated eBay seller,
+  get a ⚠ warning (also in alerts). eBay seller ratings are shown.
+- **Distance:** set *Settings → Deals → Home location* (postcode + town); listings with a location get a distance (via
+  OpenStreetMap Nominatim, max 1 lookup/s, cached forever). Per saved search *Max distance (km)*; dashboard filter
+  *Max km* and *Nearest first*. Listings without a location (e.g. Vinted) are kept.
+- **Source health** (top of the dashboard, *Deals → Source health*): last success, listings found and failures in a row
+  for every source and marketplace. After **5 failures in a row** a source is paused (skipped by runs) and you get one
+  email + push; press *Resume* once it's fixed.
 
 ### Discount vs. new price
 
@@ -239,6 +272,16 @@ save a fresh response into `tests/fixtures/deals/` and adjust the parser until `
 Create `src/lib/deals/adapters/<name>.ts` exporting an `Adapter` (`search(query, { fetch, browser }) → Listing[]`) with
 a pure `parse…()` function, add a fixture + test, then register it in `src/lib/deals/adapters/index.ts`.
 
+## Monitoring & statistics
+
+- **GitHub Actions** (`.github/workflows/verify.yml`) runs `pnpm verify` (typecheck, all tests incl. the headless
+  browser ones, migration check) and a production build on every push and pull request. Protect `master` in GitHub so
+  Railway only deploys green commits (*Settings → Branches → Require status checks: Verify*).
+- **Errors:** set `SENTRY_DSN` to send server errors and failed background jobs to Sentry.
+- **Visitor stats** without cookies: set `PLAUSIBLE_DOMAIN` (Plausible, incl. outbound link clicks) or
+  `UMAMI_WEBSITE_ID` (Umami). Nothing is loaded when neither is set.
+- **Uptime:** point a free uptime monitor (e.g. UptimeRobot, Better Stack) at `https://<your-domain>/robots.txt`.
+
 ## Deploy to Railway
 
 Ready to deploy as-is. The repo has a `Dockerfile` and `railway.json`; Railway builds the image from the Dockerfile.
@@ -271,6 +314,10 @@ included. This whole flow was tested locally with the production image against a
    | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | eBay deals + automatic new prices |
    | `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`) | only if you turn on Claude summaries |
    | `DEALS_CONTACT_EMAIL` | optional, shown in the deals bot's user agent |
+   | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` and/or `NTFY_URL` | instant deal alerts on your phone |
+   | `DISCORD_WEBHOOK_URL`, `TELEGRAM_CHANNEL_ID` | post new firmware releases to your community channels |
+   | `SENTRY_DSN` | error reporting |
+   | `PLAUSIBLE_DOMAIN` or `UMAMI_WEBSITE_ID` | cookie-less visitor statistics |
 
 4. **Settings → Networking → Generate domain.** Deploy (or redeploy after adding variables). The health check is
    `/robots.txt`; the first boot takes a little longer because of the migrations.
@@ -329,7 +376,10 @@ src/
   globals/Settings.ts site, news (Claude toggle), newsletter schedule
   lib/                small helpers (slugify, tags, rate limit, deal sources, http)
   lib/builds/         build options and parts/affiliate link resolution
-  lib/newsletter/     schedule, digest drafting/rendering/sending, Resend webhook verification
+  lib/newsletter/     schedule, digest drafting/rendering/sending, Claude intro, Resend webhook verification
+  lib/notify.ts       Telegram / ntfy / Discord notifications
+  lib/geo.ts          geocoding (Nominatim + cache) and distances
+  lib/claude.ts       shared Claude client
   lib/news/           feed parsing, canonical URLs, dedupe, auto-tags, Claude summaries, ingest
   lib/deals/          deals radar: polite HTTP client, robots.txt, FX, adapters, run logic
   jobs/               Payload job tasks (news fetching, digest drafts, deals radar, FX rates)
