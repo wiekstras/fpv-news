@@ -3,6 +3,7 @@ import * as migration_20261027_204836_news_jobs from './20261027_204836_news_job
 import * as migration_20261027_214513_builds_author_name from './20261027_214513_builds_author_name';
 import * as migration_20261027_221955_deals_radar from './20261027_221955_deals_radar';
 import * as migration_20261027_222744_newsletter from './20261027_222744_newsletter';
+import * as migration_20261028_091014_news_keywords_deal_discount from './20261028_091014_news_keywords_deal_discount';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20261027_222744_newsletter.up,
     down: migration_20261027_222744_newsletter.down,
-    name: '20261027_222744_newsletter'
+    name: '20261027_222744_newsletter',
+  },
+  {
+    up: migration_20261028_091014_news_keywords_deal_discount.up,
+    down: migration_20261028_091014_news_keywords_deal_discount.down,
+    name: '20261028_091014_news_keywords_deal_discount'
   },
 ];

@@ -31,3 +31,11 @@
   }
   &__pages { display: flex; gap: var(--base); margin-top: var(--base); align-items: center; }
 }
+.deals__discount {
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--theme-elevation-100);
+  &.is-great { background: var(--theme-success-500); color: #000; }
+  &.is-worse { color: var(--theme-error-500); }
+}

@@ -33,6 +33,36 @@ export const SavedSearches: CollectionConfig = {
       ],
     },
     {
+      type: 'row',
+      fields: [
+        {
+          name: 'referencePrice',
+          type: 'number',
+          min: 0,
+          admin: {
+            description: 'What this costs new (EUR). Leave empty to look it up on eBay automatically (needs eBay keys).',
+          },
+        },
+        {
+          name: 'alertDiscount',
+          type: 'number',
+          min: 0,
+          max: 100,
+          admin: { description: 'Also email me when a new listing is at least this % below the new price.' },
+        },
+      ],
+    },
+    {
+      type: 'collapsible',
+      label: 'New price lookup (automatic)',
+      admin: { initCollapsed: true },
+      fields: [
+        { name: 'marketPrice', type: 'number', admin: { readOnly: true, description: 'Median price of new listings on eBay.de (EUR).' } },
+        { name: 'marketPriceCount', type: 'number', admin: { readOnly: true, description: 'New listings it was based on.' } },
+        { name: 'marketPriceAt', type: 'date', admin: { readOnly: true, description: 'Refreshed at most once a day.' } },
+      ],
+    },
+    {
       name: 'excludeKeywords',
       type: 'text',
       admin: { description: 'Comma-separated words that drop a listing when they appear in its title, e.g. "defekt, kapot, broken".' },

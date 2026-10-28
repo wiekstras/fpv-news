@@ -76,6 +76,29 @@ export function parseEbay(json: string, country: string): Listing[] {
   }))
 }
 
+// New, buy-it-now listings on eBay.de: used to estimate what a product costs new.
+export function buildEbayNewPriceUrl(keywords: string) {
+  const params = new URLSearchParams({
+    q: keywords,
+    filter: 'conditions:{NEW},buyingOptions:{FIXED_PRICE},priceCurrency:EUR',
+    limit: '50',
+  })
+  return `${API}/buy/browse/v1/item_summary/search?${params}`
+}
+
+export function parseEbayPrices(json: string): number[] {
+  const items: EbayItem[] = JSON.parse(json).itemSummaries ?? []
+  return items.filter((i) => i.price?.currency === 'EUR').map((i) => Number(i.price!.value))
+}
+
+export async function ebayNewPrices(keywords: string, fetch: Fetcher): Promise<number[]> {
+  const body = await fetch(buildEbayNewPriceUrl(keywords), {
+    respectRobots: false,
+    headers: { authorization: `Bearer ${await getToken(fetch)}`, 'x-ebay-c-marketplace-id': 'EBAY_DE', accept: 'application/json' },
+  })
+  return parseEbayPrices(body)
+}
+
 export const ebay: Adapter = {
   source: 'ebay',
   countries: Object.keys(MARKETPLACES),

@@ -198,13 +198,17 @@ export interface Source {
   slug: string;
   type: 'rss' | 'youtube' | 'github' | 'blog';
   /**
-   * Feed URL. YouTube: https://www.youtube.com/feeds/videos.xml?channel_id=… — GitHub: https://github.com/<owner>/<repo>/releases.atom
+   * Feed URL. YouTube: https://www.youtube.com/feeds/videos.xml?channel_id=… — GitHub: https://github.com/<owner>/<repo>/releases.atom — Google News search: https://news.google.com/rss/search?q=<words>&hl=en
    */
   url: string;
   /**
    * Homepage shown on the source page.
    */
   siteUrl?: string | null;
+  /**
+   * Only keep items whose title or excerpt contains one of these comma-separated words, e.g. "fpv, betaflight, goggles". Use for general drone/tech sites. Empty = keep everything.
+   */
+  requireKeywords?: string | null;
   defaultTags?: ('firmware' | 'new-gear' | 'video' | 'tutorial' | 'regulation' | 'review' | 'community')[] | null;
   active?: boolean | null;
   lastFetchedAt?: string | null;
@@ -490,6 +494,26 @@ export interface SavedSearch {
    */
   alertBelow?: number | null;
   /**
+   * What this costs new (EUR). Leave empty to look it up on eBay automatically (needs eBay keys).
+   */
+  referencePrice?: number | null;
+  /**
+   * Also email me when a new listing is at least this % below the new price.
+   */
+  alertDiscount?: number | null;
+  /**
+   * Median price of new listings on eBay.de (EUR).
+   */
+  marketPrice?: number | null;
+  /**
+   * New listings it was based on.
+   */
+  marketPriceCount?: number | null;
+  /**
+   * Refreshed at most once a day.
+   */
+  marketPriceAt?: string | null;
+  /**
    * Comma-separated words that drop a listing when they appear in its title, e.g. "defekt, kapot, broken".
    */
   excludeKeywords?: string | null;
@@ -525,6 +549,14 @@ export interface Listing {
   price?: number | null;
   currency?: string | null;
   priceEur?: number | null;
+  /**
+   * New price (EUR) when this was seen
+   */
+  referencePrice?: number | null;
+  /**
+   * % below the new price
+   */
+  discountPct?: number | null;
   location?: string | null;
   country?: string | null;
   url: string;
@@ -804,6 +836,7 @@ export interface SourcesSelect<T extends boolean = true> {
   type?: T;
   url?: T;
   siteUrl?: T;
+  requireKeywords?: T;
   defaultTags?: T;
   active?: T;
   lastFetchedAt?: T;
@@ -987,6 +1020,11 @@ export interface SavedSearchesSelect<T extends boolean = true> {
   minPrice?: T;
   maxPrice?: T;
   alertBelow?: T;
+  referencePrice?: T;
+  alertDiscount?: T;
+  marketPrice?: T;
+  marketPriceCount?: T;
+  marketPriceAt?: T;
   excludeKeywords?: T;
   countries?: T;
   sources?: T;
@@ -1007,6 +1045,8 @@ export interface ListingsSelect<T extends boolean = true> {
   price?: T;
   currency?: T;
   priceEur?: T;
+  referencePrice?: T;
+  discountPct?: T;
   location?: T;
   country?: T;
   url?: T;

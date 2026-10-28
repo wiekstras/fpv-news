@@ -45,10 +45,18 @@ export const Sources: CollectionConfig = {
       required: true,
       admin: {
         description:
-          'Feed URL. YouTube: https://www.youtube.com/feeds/videos.xml?channel_id=… — GitHub: https://github.com/<owner>/<repo>/releases.atom',
+          'Feed URL. YouTube: https://www.youtube.com/feeds/videos.xml?channel_id=… — GitHub: https://github.com/<owner>/<repo>/releases.atom — Google News search: https://news.google.com/rss/search?q=<words>&hl=en',
       },
     },
     { name: 'siteUrl', type: 'text', admin: { description: 'Homepage shown on the source page.' } },
+    {
+      name: 'requireKeywords',
+      type: 'text',
+      admin: {
+        description:
+          'Only keep items whose title or excerpt contains one of these comma-separated words, e.g. "fpv, betaflight, goggles". Use for general drone/tech sites. Empty = keep everything.',
+      },
+    },
     { name: 'defaultTags', type: 'select', hasMany: true, options: NEWS_TAGS },
     { name: 'active', type: 'checkbox', defaultValue: true },
     {

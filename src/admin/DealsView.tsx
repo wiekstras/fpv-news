@@ -41,6 +41,8 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
   if (sp.source) where.source = { equals: sp.source }
   if (sp.country) where.country = { equals: sp.country }
   if (sp.q) where.title = { like: sp.q }
+  if (sp.discount) where.discountPct = { greater_than_equal: Number(sp.discount) }
+  if (sp.sort === 'discount') where.discountPct = { ...(where.discountPct as object), exists: true }
   if (sp.min || sp.max) {
     where.priceEur = {
       ...(sp.min ? { greater_than_equal: Number(sp.min) } : {}),
@@ -52,7 +54,7 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
     req.payload.find({
       collection: 'listings',
       where,
-      sort: sp.sort === 'price' ? 'priceEur' : '-firstSeenAt',
+      sort: sp.sort === 'price' ? 'priceEur' : sp.sort === 'discount' ? '-discountPct' : '-firstSeenAt',
       limit: 50,
       page: Number(sp.page) || 1,
       depth: 1,
@@ -100,6 +102,14 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
             <a key={s.id} href={`/admin/collections/saved-searches/${s.id}`} className="deals__search">
               <strong>{s.name}</strong> {s.active ? '' : '(paused)'}
               <span className="deals__muted"> · last run {when(s.lastRunAt)}</span>
+              <div className="deals__muted">
+                New price:{' '}
+                {s.referencePrice
+                  ? `${money(s.referencePrice)} (set by you)`
+                  : s.marketPrice
+                    ? `≈ ${money(s.marketPrice)} (eBay.de, ${s.marketPriceCount} new listings)`
+                    : 'unknown (set it on the search, or add eBay keys)'}
+              </div>
               {s.lastResult && <pre>{s.lastResult}</pre>}
             </a>
           ))}
@@ -121,6 +131,7 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
           </select>
           <input name="min" type="number" placeholder="Min €" defaultValue={sp.min} />
           <input name="max" type="number" placeholder="Max €" defaultValue={sp.max} />
+          <input name="discount" type="number" placeholder="Min % off" defaultValue={sp.discount} />
           <select name="state" defaultValue={state}>
             <option value="open">New + interesting</option>
             <option value="new">New</option>
@@ -131,6 +142,7 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
           <select name="sort" defaultValue={sp.sort ?? ''}>
             <option value="">Newest first</option>
             <option value="price">Cheapest first</option>
+            <option value="discount">Biggest discount</option>
           </select>
           <button type="submit">Filter</button>
           <a href="/admin/deals">Reset</a>
@@ -142,6 +154,7 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
               <th />
               <th>Listing</th>
               <th>Price</th>
+              <th>vs new</th>
               <th>Where</th>
               <th>Posted / seen</th>
               <th />
@@ -164,6 +177,16 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
                   <td>
                     <strong>{money(l.priceEur)}</strong>
                     {l.currency && l.currency !== 'EUR' && l.price != null && <div className="deals__muted">{money(l.price, l.currency)}</div>}
+                  </td>
+                  <td>
+                    {l.discountPct != null ? (
+                      <span className={`deals__discount ${l.discountPct >= 30 ? 'is-great' : l.discountPct < 0 ? 'is-worse' : ''}`}>
+                        {l.discountPct > 0 ? `−${l.discountPct}%` : `+${-l.discountPct}%`}
+                      </span>
+                    ) : (
+                      '–'
+                    )}
+                    {l.referencePrice != null && <div className="deals__muted">new ≈ {money(l.referencePrice)}</div>}
                   </td>
                   <td>
                     {l.country}

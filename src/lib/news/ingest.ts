@@ -6,12 +6,13 @@ import { slugify } from '../slugify'
 import { autoTags } from './autoTags'
 import { canonicalizeUrl } from './canonical'
 import { isNearDuplicate, normalizeTitle } from './dedupe'
+import { cleanGoogleNewsTitle, isGoogleNews, matchesAnyKeyword } from './filters'
 import { extractPageMeta } from './pageMeta'
 import { parseFeed } from './parseFeed'
 import { summarize } from './summarize'
 
 const DAY = 24 * 60 * 60 * 1000
-const MAX_ENTRIES_PER_FETCH = 25
+const MAX_ENTRIES_PER_FETCH = 50
 const MAX_AGE_DAYS = 60
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -40,12 +41,18 @@ export async function ingestSource(payload: Payload, source: Source, useClaude: 
   })
   const recentTitles = recent.docs.map((d) => d.normalizedTitle).filter((t): t is string => Boolean(t))
 
+  const googleNews = isGoogleNews(source.url)
   let created = 0
   let skipped = 0
   for (const entry of entries) {
+    if (!matchesAnyKeyword(`${entry.title} ${entry.description ?? ''}`, source.requireKeywords)) {
+      skipped++
+      continue
+    }
     // GitHub release titles are often just "v4.5.1"; prefix the project name.
-    const title =
-      source.type === 'github' && !normalizeTitle(entry.title).includes(normalizeTitle(source.name))
+    const title = googleNews
+      ? cleanGoogleNewsTitle(entry.title)
+      : source.type === 'github' && !normalizeTitle(entry.title).includes(normalizeTitle(source.name))
         ? `${source.name} ${entry.title}`
         : entry.title
     const normalizedTitle = normalizeTitle(title)
@@ -58,7 +65,8 @@ export async function ingestSource(payload: Payload, source: Source, useClaude: 
     // Articles: read the page head for rel=canonical and og:image.
     // GitHub's feed thumbnail is the release author's avatar, not a useful preview.
     let thumbnailUrl = source.type === 'github' ? undefined : entry.thumbnailUrl
-    if (source.type === 'rss' || source.type === 'blog') {
+    // (Google News links are redirects to the publisher; nothing useful to read there.)
+    if ((source.type === 'rss' || source.type === 'blog') && !googleNews) {
       try {
         await sleep(1000)
         const meta = extractPageMeta(await fetchText(entry.url), entry.url)

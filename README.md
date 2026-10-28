@@ -51,11 +51,20 @@ Without `RESEND_API_KEY`, Payload only logs that an email was attempted (recipie
 
 - **Sources** (admin → News → Sources): RSS/Atom feeds, YouTube channel feeds
   (`https://www.youtube.com/feeds/videos.xml?channel_id=…`), GitHub releases
-  (`https://github.com/<owner>/<repo>/releases.atom`) and manufacturer blogs. Default tags per source are optional.
-- **Fetching** runs every 30 minutes as a Payload job (`src/jobs/fetchNews.ts`). The **Fetch all sources now** button
+  (`https://github.com/<owner>/<repo>/releases.atom`), manufacturer blogs and Google News searches
+  (`https://news.google.com/rss/search?q=<words>&hl=en`). Default tags per source are optional.
+- **Not missing news:** coverage = the sources you add. `pnpm seed` adds 16: firmware releases (Betaflight, INAV,
+  ExpressLRS + Configurator, EdgeTX, Bluejay, AM32, HDZero goggles), Joshua Bardwell's YouTube channel, Oscar Liang,
+  DroneDJ / DroneXL / DroneLife (filtered to FPV stories) and three Google News searches as a safety net for stories
+  from sites we don't follow. Re-running the seed only adds sources that don't exist yet. Add your favourite YouTube
+  channels yourself (channel page → *Share* → *Copy channel ID*, then use the YouTube feed URL above).
+- **Keyword filter per source** (*Require keywords*): for general drone/tech sites, only items whose title or excerpt
+  contains one of the words are kept. Google News titles get the trailing "- Publisher" removed, so a story found both
+  there and in the publisher's own feed is stored once.
+- **Fetching** runs every 15 minutes as a Payload job (`src/jobs/fetchNews.ts`). The **Fetch all sources now** button
   above the Sources list runs it immediately and shows per-source results; failures are stored in the source's *Last error*.
 - **Per item** we store title, source, link, date, thumbnail URL (hotlinked, never downloaded) and tags. We never store
-  or show the article text. Items older than 60 days and more than 25 per fetch are ignored.
+  or show the article text. Items older than 60 days and more than 50 per fetch are ignored.
 - **Dedupe:** the URL is normalized (tracking params, `www.`, trailing slashes and YouTube link variants removed; the
   page's `rel=canonical` is used for blog posts) and must be unique. Titles that are identical or share ≥80% of their
   words with an item from the last 7 days are skipped. Version numbers count as whole words, so *Betaflight 4.5.1* and
@@ -117,13 +126,29 @@ Dashboard: **/admin/deals** (also in the admin sidebar). Not public; contributor
 
 1. **Settings → Deals:** tick the sources the radar may use (default: eBay only). Set *Settings → Site → Admin email*
    for alerts.
-2. **Deals → Saved searches:** keywords, optional min/max price in EUR, *Alert below* (EUR), exclude words, countries
+2. **Deals → Saved searches:** keywords, optional min/max price in EUR, *Alert below* (EUR), *New price* and *Alert at
+   % below new* (see below), exclude words, countries
    and sources (empty = all).
 3. Searches run **every 3 hours** (job `runDeals`), or press **Run searches now** on the dashboard. Each saved search
    shows its last result per source, including errors.
 4. On the dashboard: filter by keyword, source, country, price range and state; **NEW** marks listings first seen since
    your previous visit (a visit = opening the dashboard after 30+ minutes away); ★ marks interesting, ✕ ignores.
-5. When a new listing matches a search under its *Alert below* price, one summary email per run goes to the admin email.
+5. When a new listing is under a search's *Alert below* price, or at least *Alert at % below new* cheaper than new, one
+   summary email per run goes to the admin email.
+
+### Discount vs. new price
+
+Every listing shows how much cheaper it is than buying new (the **vs new** column; sort by *Biggest discount* or filter
+on *Min % off*). The new price per saved search is:
+
+- the **New price** you set on the search, or otherwise
+- looked up automatically: the median price of **new, buy-it-now listings on eBay.de** for the same keywords, after
+  dropping prices far from the median (accessories, spare parts, bundles). Needs at least 3 listings and the eBay keys;
+  refreshed at most once a day and shown on the dashboard with how many listings it is based on.
+
+Every listing in a search is compared with that search's new price, so this works best with product-specific searches
+("DJI O3 air unit", "Radiomaster Boxer") plus exclude words ("antenna, case, defekt"). A broad search like "fpv" gets no
+meaningful new price; leave its discount empty or set a price yourself.
 
 All prices are converted to EUR with the ECB daily reference rates (job `fetchFxRates`, daily ~16:30 CET; fetched on
 the first run if missing). Prices in a currency without a rate stay unconverted and are skipped by price filters.

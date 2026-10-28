@@ -6,7 +6,7 @@ export const Listings: CollectionConfig = {
   slug: 'listings',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'source', 'priceEur', 'country', 'firstSeenAt', 'state'],
+    defaultColumns: ['title', 'source', 'priceEur', 'discountPct', 'country', 'firstSeenAt', 'state'],
     group: 'Deals',
     hidden: hiddenFromContributors,
   },
@@ -18,7 +18,16 @@ export const Listings: CollectionConfig = {
       method: 'post',
       handler: async (req) => {
         if (!isAdminUser(req)) return Response.json({ error: 'Forbidden' }, { status: 403 })
-        await req.payload.jobs.queue({ task: 'runDeals', queue: 'deals', input: {} })
+        const { totalDocs } = await req.payload.count({
+          collection: 'payload-jobs',
+          where: {
+            taskSlug: { equals: 'runDeals' },
+            completedAt: { exists: false },
+            hasError: { not_equals: true },
+            or: [{ waitUntil: { exists: false } }, { waitUntil: { less_than_equal: new Date().toISOString() } }],
+          },
+        })
+        if (totalDocs === 0) await req.payload.jobs.queue({ task: 'runDeals', queue: 'deals', input: {} })
         return Response.json({ queued: true })
       },
     },
@@ -35,6 +44,13 @@ export const Listings: CollectionConfig = {
         { name: 'price', type: 'number' },
         { name: 'currency', type: 'text', defaultValue: 'EUR' },
         { name: 'priceEur', type: 'number', index: true },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        { name: 'referencePrice', type: 'number', admin: { description: 'New price (EUR) when this was seen' } },
+        { name: 'discountPct', type: 'number', index: true, admin: { description: '% below the new price' } },
       ],
     },
     {

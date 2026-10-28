@@ -115,3 +115,40 @@ describe('autoTags', () => {
     expect(autoTags('rss', [], 'More bandwidth for analog video links')).toEqual([])
   })
 })
+
+describe('source keyword filter', () => {
+  it('keeps everything when no keywords are set', async () => {
+    const { matchesAnyKeyword } = await import('@/lib/news/filters')
+    expect(matchesAnyKeyword('Anything at all', '')).toBe(true)
+    expect(matchesAnyKeyword('Anything at all', null)).toBe(true)
+  })
+
+  it('matches whole words, case-insensitively, including multi-word keywords', async () => {
+    const { matchesAnyKeyword } = await import('@/lib/news/filters')
+    const kw = 'fpv, racing drone, o4, elrs'
+    expect(matchesAnyKeyword('New FPV frame from TBS', kw)).toBe(true)
+    expect(matchesAnyKeyword('Best racing drone of 2026', kw)).toBe(true)
+    expect(matchesAnyKeyword('DJI O4 Air Unit Pro announced', kw)).toBe(true)
+    expect(matchesAnyKeyword('DJI Mini 5 review', kw)).toBe(false)
+    expect(matchesAnyKeyword('Shelves for your garage', kw)).toBe(false) // "elrs" inside "shelves"
+  })
+})
+
+describe('Google News feeds', () => {
+  it('parses items and strips the publisher from titles', async () => {
+    const { cleanGoogleNewsTitle, isGoogleNews } = await import('@/lib/news/filters')
+    const entries = await parseFeed(fixture('google-news.xml'))
+    expect(entries.map((e) => cleanGoogleNewsTitle(e.title))).toEqual([
+      'DJI launches new FPV goggles with lower latency',
+      'Pro-Drone - Racer Wins Big at FPV World Cup',
+    ])
+    expect(isGoogleNews(entries[0].url)).toBe(true)
+    expect(isGoogleNews('https://dronexl.co/feed/')).toBe(false)
+  })
+
+  it('dedupes a Google News headline against the publisher’s own item', async () => {
+    const { cleanGoogleNewsTitle } = await import('@/lib/news/filters')
+    const own = normalizeTitle('DJI Launches New FPV Goggles With Lower Latency')
+    expect(isNearDuplicate(normalizeTitle(cleanGoogleNewsTitle('DJI launches new FPV goggles with lower latency - DroneXL')), [own])).toBe(true)
+  })
+})

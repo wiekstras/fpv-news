@@ -1,0 +1,94 @@
+{
+  "total": 9,
+  "itemSummaries": [
+    {
+      "itemId": "v1|90|0",
+      "title": "DJI O3 Air Unit",
+      "price": {
+        "value": "199.00",
+        "currency": "EUR"
+      },
+      "itemWebUrl": "https://www.ebay.de/itm/90",
+      "condition": "Neu"
+    },
+    {
+      "itemId": "v1|91|0",
+      "title": "DJI O3 Air Unit Neu OVP",
+      "price": {
+        "value": "209.00",
+        "currency": "EUR"
+      },
+      "itemWebUrl": "https://www.ebay.de/itm/91",
+      "condition": "Neu"
+    },
+    {
+      "itemId": "v1|92|0",
+      "title": "O3 Antenne Ersatz",
+      "price": {
+        "value": "9.99",
+        "currency": "EUR"
+      },
+      "itemWebUrl": "https://www.ebay.de/itm/92",
+      "condition": "Neu"
+    },
+    {
+      "itemId": "v1|93|0",
+      "title": "DJI O3 Air Unit",
+      "price": {
+        "value": "215.00",
+        "currency": "EUR"
+      },
+      "itemWebUrl": "https://www.ebay.de/itm/93",
+      "condition": "Neu"
+    },
+    {
+      "itemId": "v1|94|0",
+      "title": "Schutzh\u00fclle O3",
+      "price": {
+        "value": "14.90",
+        "currency": "EUR"
+      },
+      "itemWebUrl": "https://www.ebay.de/itm/94",
+      "condition": "Neu"
+    },
+    {
+      "itemId": "v1|95|0",
+      "title": "DJI O3 Air Unit",
+      "price": {
+        "value": "229.00",
+        "currency": "EUR"
+      },
+      "itemWebUrl": "https://www.ebay.de/itm/95",
+      "condition": "Neu"
+    },
+    {
+      "itemId": "v1|96|0",
+      "title": "DJI O3 Air Unit",
+      "price": {
+        "value": "189.00",
+        "currency": "EUR"
+      },
+      "itemWebUrl": "https://www.ebay.de/itm/96",
+      "condition": "Neu"
+    },
+    {
+      "itemId": "v1|97|0",
+      "title": "DJI O3 + Goggles 2 Bundle",
+      "price": {
+        "value": "650.00",
+        "currency": "EUR"
+      },
+      "itemWebUrl": "https://www.ebay.de/itm/97",
+      "condition": "Neu"
+    },
+    {
+      "itemId": "v1|999|0",
+      "title": "DJI O3 (UK)",
+      "price": {
+        "value": "150.00",
+        "currency": "GBP"
+      },
+      "itemWebUrl": "https://www.ebay.co.uk/itm/999"
+    }
+  ]
+}

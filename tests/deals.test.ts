@@ -194,3 +194,35 @@ describe('matchesSearch', () => {
     expect(matchesSearch({ title: 'DJI O3 defekt', country: 'DE' }, 150, { excludeKeywords: 'kapot, defekt' })).toBe(false)
   })
 })
+
+describe('new price and discount', () => {
+  it('estimates the new price from eBay new listings, ignoring accessories and bundles', async () => {
+    const { parseEbayPrices } = await import('@/lib/deals/adapters/ebay')
+    const { marketPrice } = await import('@/lib/deals/reference')
+    const prices = parseEbayPrices(fixture('ebay-new-prices.json'))
+    expect(prices).toHaveLength(8) // the GBP item is left out
+    expect(marketPrice(prices)).toBe(209)
+  })
+
+  it('needs at least three prices', async () => {
+    const { marketPrice } = await import('@/lib/deals/reference')
+    expect(marketPrice([100, 120])).toBeNull()
+    expect(marketPrice([100, 120, 0])).toBeNull()
+    expect(marketPrice([100, 110, 120])).toBe(110)
+  })
+
+  it('computes % below new, negative when pricier than new', async () => {
+    const { discountPct } = await import('@/lib/deals/reference')
+    expect(discountPct(149, 209)).toBe(29)
+    expect(discountPct(250, 200)).toBe(-25)
+    expect(discountPct(null, 200)).toBeNull()
+    expect(discountPct(100, null)).toBeNull()
+  })
+
+  it('asks eBay.de for new, buy-it-now items in EUR', async () => {
+    const { buildEbayNewPriceUrl } = await import('@/lib/deals/adapters/ebay')
+    const url = new URL(buildEbayNewPriceUrl('dji o3'))
+    expect(url.searchParams.get('q')).toBe('dji o3')
+    expect(url.searchParams.get('filter')).toBe('conditions:{NEW},buyingOptions:{FIXED_PRICE},priceCurrency:EUR')
+  })
+})
