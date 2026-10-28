@@ -152,3 +152,46 @@ describe('Google News feeds', () => {
     expect(isNearDuplicate(normalizeTitle(cleanGoogleNewsTitle('DJI launches new FPV goggles with lower latency - DroneXL')), [own])).toBe(true)
   })
 })
+
+describe('firmware tracker', () => {
+  it('tells pre-releases from stable releases', async () => {
+    const { isPrerelease } = await import('@/lib/news/firmware')
+    for (const t of ['Betaflight 4.6.0-RC2', '3.5.0-rc.1', 'INAV 8.0.0 RC1', 'v2.11.0-beta3', 'Nightly build 2026-10-27', 'Release Candidate 2', '4.6.0 (alpha)']) {
+      expect(isPrerelease(t.replace('Release Candidate', 'RC'))).toBe(true)
+    }
+    for (const t of ['4.6.1', 'Betaflight 4.5.2', 'EdgeTX "Ursa Minor" v2.10.0', 'Bluejay v0.21.0', 'Developers rejoice: 3.5.0']) {
+      expect(isPrerelease(t)).toBe(false)
+    }
+  })
+
+  it('extracts version numbers', async () => {
+    const { extractVersion } = await import('@/lib/news/firmware')
+    expect(extractVersion('Betaflight 4.6.0-RC2')).toBe('4.6.0-RC2')
+    expect(extractVersion('EdgeTX "Ursa Minor" v2.10.0')).toBe('2.10.0')
+    expect(extractVersion('3.5.0-rc.1')).toBe('3.5.0-rc.1')
+    expect(extractVersion('Some announcement')).toBeNull()
+  })
+
+  it('picks the latest stable and only a newer pre-release', async () => {
+    const { latestReleases } = await import('@/lib/news/firmware')
+    const e = (title: string, day: number) => ({ title, url: `https://gh/${title}`, publishedAt: new Date(Date.UTC(2026, 9, day)) })
+    const result = latestReleases([e('4.5.2', 1), e('4.6.0-RC1', 5), e('4.6.0', 10), e('4.6.1-RC1', 20), e('Docs update', 25)])
+    expect(result.stable).toMatchObject({ version: '4.6.0' })
+    expect(result.pre).toMatchObject({ version: '4.6.1-RC1' })
+    expect(latestReleases([e('4.6.0-RC1', 5), e('4.6.0', 10)]).pre).toBeNull()
+    expect(latestReleases([])).toEqual({ stable: null, pre: null })
+  })
+})
+
+describe('site search', () => {
+  it('requires every word in one of the fields, ignoring 1-letter words', async () => {
+    const { searchWhere } = await import('@/lib/search')
+    expect(searchWhere('  dji  o3 a ', ['title', 'summary'])).toEqual({
+      and: [
+        { or: [{ title: { like: 'dji' } }, { summary: { like: 'dji' } }] },
+        { or: [{ title: { like: 'o3' } }, { summary: { like: 'o3' } }] },
+      ],
+    })
+    expect(searchWhere(' ', ['title'])).toBeNull()
+  })
+})

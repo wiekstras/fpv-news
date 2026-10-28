@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { adminsOnly, hiddenFromContributors, isAdminUser } from '../access'
-import { createDigestDraft } from '../lib/newsletter/digest'
+import { createDigestDraft, digestContent } from '../lib/newsletter/digest'
+import { writeDigestIntro } from '../lib/newsletter/intro'
 import { sendDigest } from '../lib/newsletter/send'
 
 export const Digests: CollectionConfig = {
@@ -21,6 +22,23 @@ export const Digests: CollectionConfig = {
         if (!isAdminUser(req)) return Response.json({ error: 'Forbidden' }, { status: 403 })
         const digest = await createDigestDraft(req.payload, new Date())
         return Response.json({ id: digest.id })
+      },
+    },
+    {
+      // (Re)write the intro with Claude from the digest's current items.
+      path: '/:id/intro',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminUser(req)) return Response.json({ error: 'Forbidden' }, { status: 403 })
+        const digest = await req.payload.findByID({ collection: 'digests', id: Number(req.routeParams?.id), depth: 0 })
+        try {
+          const intro = await writeDigestIntro(await digestContent(req.payload, digest))
+          if (!intro) return Response.json({ error: 'Claude is not configured (ANTHROPIC_API_KEY) or returned nothing' }, { status: 400 })
+          await req.payload.update({ collection: 'digests', id: digest.id, data: { intro } })
+          return Response.json({ intro })
+        } catch (err) {
+          return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+        }
       },
     },
     {

@@ -16,6 +16,16 @@ export function DigestActions() {
 
   if (!id) return <p>Save the digest to see the preview and send options.</p>
 
+  async function rewriteIntro() {
+    if (!window.confirm('Replace the intro with a new one written by Claude? Unsaved edits on this page are lost.')) return
+    setBusy(true)
+    const res = await fetch(`/api/digests/${id}/intro`, { method: 'POST', credentials: 'include' })
+    const json = await res.json()
+    setBusy(false)
+    if (res.ok) window.location.reload()
+    else setMessage(`Error: ${json.error}`)
+  }
+
   async function send(test: boolean) {
     if (!test && !window.confirm('Send this digest to all confirmed subscribers now? This cannot be undone.')) return
     setBusy(true)
@@ -36,6 +46,7 @@ export function DigestActions() {
     <div style={{ marginBottom: 'calc(var(--base) * 2)' }}>
       <div style={{ display: 'flex', gap: 'var(--base)', flexWrap: 'wrap', alignItems: 'center' }}>
         <Button buttonStyle="secondary" margin={false} onClick={() => setPreviewKey((k) => k + 1)}>Refresh preview</Button>
+        <Button buttonStyle="secondary" margin={false} disabled={busy} onClick={rewriteIntro}>Rewrite intro with Claude</Button>
         <Button buttonStyle="secondary" margin={false} disabled={busy} onClick={() => send(true)}>Send test to me</Button>
         {status === 'draft' && (
           <Button margin={false} disabled={busy} onClick={() => send(false)}>Send to subscribers</Button>

@@ -32,6 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...NEWS_TAGS.map((t) => ({ url: `${base}/news/tag/${t.value}`, changeFrequency: 'daily' as const })),
     ...sources.docs.map((s) => ({ url: `${base}/news/source/${s.slug}`, changeFrequency: 'daily' as const })),
     { url: `${base}/builds`, changeFrequency: 'daily' as const },
+    { url: `${base}/firmware`, changeFrequency: 'hourly' as const, priority: 0.9 },
     ...builds.docs.map((b) => ({ url: `${base}/builds/${b.slug}`, lastModified: b.updatedAt })),
     ...news.docs.map((n) => ({ url: `${base}/news/${n.slug}`, lastModified: n.updatedAt })),
   ]

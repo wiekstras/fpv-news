@@ -1,6 +1,7 @@
 import type { Payload } from 'payload'
 import type { Build, Digest, Media, NewsItem, Source } from '@/payload-types'
 import { DIFFICULTIES, FRAME_SIZES, optionLabel } from '../builds/options'
+import { writeDigestIntro } from './intro'
 import { pickNews } from './pick'
 import type { DigestContent, DigestEntry } from './render'
 import { TZ } from './schedule'
@@ -41,7 +42,7 @@ export async function createDigestDraft(payload: Payload, scheduledAt: Date) {
   const [featured, ...moreBuilds] = builds.docs
   const date = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ }).format(scheduledAt)
 
-  return payload.create({
+  const draft = await payload.create({
     collection: 'digests',
     data: {
       subject: `FPV weekly · ${date}`,
@@ -55,6 +56,17 @@ export async function createDigestDraft(payload: Payload, scheduledAt: Date) {
       ],
     },
   })
+
+  // Optional Claude-written intro (Settings → News → Claude toggle); keeps the default text otherwise.
+  const settings = await payload.findGlobal({ slug: 'settings' })
+  if (settings.claudeSummaries) {
+    const intro = await writeDigestIntro(await digestContent(payload, draft)).catch((err: unknown) => {
+      payload.logger.warn({ err }, 'Claude digest intro failed')
+      return null
+    })
+    if (intro) return payload.update({ collection: 'digests', id: draft.id, data: { intro } })
+  }
+  return draft
 }
 
 // Loads everything a digest references and turns it into renderable content.

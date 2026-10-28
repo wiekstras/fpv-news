@@ -8,6 +8,7 @@ import * as migration_20261028_132121_browser_sources_permissions from './202610
 import * as migration_20261028_140242_eu_marketplaces from './20261028_140242_eu_marketplaces';
 import * as migration_20261028_143253_deals_health_alerts_distance from './20261028_143253_deals_health_alerts_distance';
 import * as migration_20261028_143652_builds_clicks_comments_likes from './20261028_143652_builds_clicks_comments_likes';
+import * as migration_20261028_144126_firmware_versions from './20261028_144126_firmware_versions';
 
 export const migrations = [
   {
@@ -58,6 +59,11 @@ export const migrations = [
   {
     up: migration_20261028_143652_builds_clicks_comments_likes.up,
     down: migration_20261028_143652_builds_clicks_comments_likes.down,
-    name: '20261028_143652_builds_clicks_comments_likes'
+    name: '20261028_143652_builds_clicks_comments_likes',
+  },
+  {
+    up: migration_20261028_144126_firmware_versions.up,
+    down: migration_20261028_144126_firmware_versions.down,
+    name: '20261028_144126_firmware_versions'
   },
 ];

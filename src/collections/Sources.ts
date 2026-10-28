@@ -60,6 +60,29 @@ export const Sources: CollectionConfig = {
     { name: 'defaultTags', type: 'select', hasMany: true, options: NEWS_TAGS },
     { name: 'active', type: 'checkbox', defaultValue: true },
     {
+      type: 'collapsible',
+      label: 'Firmware versions (GitHub sources, updated on every fetch)',
+      admin: { condition: (data) => data?.type === 'github', initCollapsed: true },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            { name: 'stableVersion', type: 'text', admin: { readOnly: true } },
+            { name: 'stableUrl', type: 'text', admin: { readOnly: true } },
+            { name: 'stableDate', type: 'date', admin: { readOnly: true } },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            { name: 'preVersion', type: 'text', admin: { readOnly: true, description: 'Only when newer than the stable release' } },
+            { name: 'preUrl', type: 'text', admin: { readOnly: true } },
+            { name: 'preDate', type: 'date', admin: { readOnly: true } },
+          ],
+        },
+      ],
+    },
+    {
       type: 'row',
       fields: [
         { name: 'lastFetchedAt', type: 'date', admin: { readOnly: true } },

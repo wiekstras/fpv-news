@@ -7,8 +7,11 @@ import { autoTags } from './autoTags'
 import { canonicalizeUrl } from './canonical'
 import { isNearDuplicate, normalizeTitle } from './dedupe'
 import { cleanGoogleNewsTitle, isGoogleNews, matchesAnyKeyword } from './filters'
+import { postToChannels } from '../notify'
+import { SITE_URL } from '../site'
+import { latestReleases } from './firmware'
 import { extractPageMeta } from './pageMeta'
-import { parseFeed } from './parseFeed'
+import { type FeedEntry, parseFeed } from './parseFeed'
 import { summarize } from './summarize'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -27,7 +30,9 @@ async function exists(payload: Payload, canonicalUrl: string) {
 }
 
 export async function ingestSource(payload: Payload, source: Source, useClaude: boolean) {
-  const entries = (await parseFeed(await fetchText(source.url)))
+  const all = await parseFeed(await fetchText(source.url))
+  if (source.type === 'github') await updateFirmwareVersions(payload, source, all)
+  const entries = all
     .filter((e) => e.publishedAt.getTime() > Date.now() - MAX_AGE_DAYS * DAY)
     .slice(0, MAX_ENTRIES_PER_FETCH)
 
@@ -114,6 +119,14 @@ export async function ingestSource(payload: Payload, source: Source, useClaude: 
     })
     recentTitles.push(normalizedTitle)
     created++
+    // Fresh firmware releases go to the community channels (Discord/Telegram), if configured.
+    if (tags.includes('firmware') && Date.now() - entry.publishedAt.getTime() < 2 * DAY) {
+      await postToChannels({
+        title,
+        message: summary ?? `New release from ${source.name}`,
+        url: `${SITE_URL}/news/${slugify(title) || 'item'}-${hash}`,
+      })
+    }
   }
   return { created, skipped }
 }
@@ -151,4 +164,22 @@ export async function fetchSources(payload: Payload, sourceId?: number) {
     }
   }
   return results
+}
+
+// Latest stable / pre-release of a GitHub releases feed, for the /firmware page.
+async function updateFirmwareVersions(payload: Payload, source: Source, entries: FeedEntry[]) {
+  const { stable, pre } = latestReleases(entries)
+  await payload.update({
+    collection: 'sources',
+    id: source.id,
+    data: {
+      stableVersion: stable?.version ?? null,
+      stableUrl: stable?.url ?? null,
+      stableDate: stable?.date.toISOString() ?? null,
+      preVersion: pre?.version ?? null,
+      preUrl: pre?.url ?? null,
+      preDate: pre?.date.toISOString() ?? null,
+    },
+    overrideAccess: true,
+  })
 }

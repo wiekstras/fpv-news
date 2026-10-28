@@ -224,6 +224,15 @@ export interface Source {
   requireKeywords?: string | null;
   defaultTags?: ('firmware' | 'new-gear' | 'video' | 'tutorial' | 'regulation' | 'review' | 'community')[] | null;
   active?: boolean | null;
+  stableVersion?: string | null;
+  stableUrl?: string | null;
+  stableDate?: string | null;
+  /**
+   * Only when newer than the stable release
+   */
+  preVersion?: string | null;
+  preUrl?: string | null;
+  preDate?: string | null;
   lastFetchedAt?: string | null;
   lastError?: string | null;
   updatedAt: string;
@@ -1100,6 +1109,12 @@ export interface SourcesSelect<T extends boolean = true> {
   requireKeywords?: T;
   defaultTags?: T;
   active?: T;
+  stableVersion?: T;
+  stableUrl?: T;
+  stableDate?: T;
+  preVersion?: T;
+  preUrl?: T;
+  preDate?: T;
   lastFetchedAt?: T;
   lastError?: T;
   updatedAt?: T;

@@ -24,18 +24,34 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
       <body className="min-h-screen font-sans antialiased">
         <Analytics />
         <header className="border-b border-border">
-          <nav className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-4">
-            <Link href="/" className="font-mono text-lg font-bold tracking-tight">
+          <nav className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4">
+            <Link href="/" className="font-mono text-lg font-bold tracking-tight whitespace-nowrap">
               <span className="text-accent">●</span> FPV<span className="text-accent">NEWS</span>
             </Link>
-            <div className="ml-auto flex items-center gap-5 text-sm">
+            <div className="ml-auto flex items-center gap-3 text-sm sm:gap-5">
               <Link href="/" className="hover:text-accent">News</Link>
               <Link href="/builds" className="hover:text-accent">Builds</Link>
+              <Link href="/firmware" className="hidden hover:text-accent sm:inline">Firmware</Link>
+              <form action="/search" className="hidden md:block">
+                <input
+                  name="q"
+                  placeholder="Search…"
+                  aria-label="Search news and builds"
+                  className="w-36 rounded-md border border-border bg-surface px-2 py-1 text-sm outline-none focus:w-56 focus:border-accent"
+                />
+              </form>
+              <Link href="/search" className="hover:text-accent md:hidden" aria-label="Search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+              </Link>
               <Link
                 href="/submit"
-                className="rounded-md bg-accent px-3 py-1.5 font-medium text-accent-fg hover:opacity-90"
+                className="rounded-md bg-accent px-3 py-1.5 font-medium whitespace-nowrap text-accent-fg hover:opacity-90"
               >
-                Submit a build
+                <span className="sm:hidden">Submit</span>
+                <span className="hidden sm:inline">Submit a build</span>
               </Link>
             </div>
           </nav>
