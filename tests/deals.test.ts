@@ -226,3 +226,100 @@ describe('new price and discount', () => {
     expect(url.searchParams.get('filter')).toBe('conditions:{NEW},buyingOptions:{FIXED_PRICE},priceCurrency:EUR')
   })
 })
+
+describe('browser-based adapters', () => {
+  it('leboncoin: reads ads from the Next.js page data', async () => {
+    const { buildLeboncoinUrl, parseLeboncoin } = await import('@/lib/deals/adapters/leboncoin')
+    const [first, second, ...rest] = parseLeboncoin(fixture('leboncoin-search.html'))
+    expect(rest).toEqual([])
+    expect(first).toEqual({
+      source: 'leboncoin',
+      externalId: '2871234567',
+      title: 'DJI O3 Air Unit comme neuf',
+      price: 140,
+      currency: 'EUR',
+      location: '75011 Paris',
+      country: 'FR',
+      url: 'https://www.leboncoin.fr/ad/modelisme/2871234567',
+      image: 'https://img.leboncoin.fr/api/v1/lbcpb1/images/aa/ad-image.jpg',
+      postedAt: new Date('2026-10-27T13:05:00Z'), // 14:05 Paris (CET)
+    })
+    expect(second).toMatchObject({ price: null, image: undefined, location: 'Lyon' })
+    expect(buildLeboncoinUrl({ keywords: 'dji o3', maxPrice: 200, countries: [] })).toBe(
+      'https://www.leboncoin.fr/recherche?text=dji+o3&sort=time&order=desc&price=min-200',
+    )
+  })
+
+  it('Subito: reads items from the Next.js page data, skipping ads and incomplete items', async () => {
+    const { buildSubitoUrl, parseSubito } = await import('@/lib/deals/adapters/subito')
+    const items = parseSubito(fixture('subito-search.html'))
+    expect(items).toEqual([
+      {
+        source: 'subito',
+        externalId: '543210987',
+        title: 'Radiocomando RadioMaster TX16S MKII',
+        price: 220,
+        currency: 'EUR',
+        location: 'Milano',
+        country: 'IT',
+        url: 'https://www.subito.it/modellismo/radiocomando-radiomaster-tx16s-milano-543210987.htm',
+        image: 'https://images.sbito.it/api/v1/sbt-ads-images-pro/images/ab/abc123',
+        postedAt: new Date('2026-10-27T17:42:00Z'),
+      },
+    ])
+    expect(buildSubitoUrl({ keywords: 'tx16s', minPrice: 50, maxPrice: 300, countries: [] })).toBe(
+      'https://www.subito.it/annunci-italia/vendita/usato/?q=tx16s&order=datedesc&ps=50&pe=300',
+    )
+  })
+
+  it('Vinted: maps catalog API items (new and old price formats)', async () => {
+    const { buildVintedUrl, parseVinted } = await import('@/lib/deals/adapters/vinted')
+    const items = parseVinted(JSON.parse(fixture('vinted-catalog.json')), 'NL')
+    expect(items[0]).toEqual({
+      source: 'vinted',
+      externalId: '5123456789',
+      title: 'DJI Goggles 2',
+      price: 280,
+      currency: 'EUR',
+      country: 'NL',
+      url: 'https://www.vinted.nl/items/5123456789-dji-goggles-2',
+      image: 'https://images1.vinted.net/t/01_aa/f800/abc.jpeg',
+    })
+    expect(items[1]).toMatchObject({ price: 15, url: 'https://www.vinted.nl/items/5100000001-fpv-drone-frame', image: undefined })
+    expect(buildVintedUrl({ keywords: 'goggles', maxPrice: 300, countries: [] }, 'DE')).toBe(
+      'https://www.vinted.de/catalog?search_text=goggles&order=newest_first&price_to=300',
+    )
+  })
+
+  it('Wallapop: maps search API items in both response shapes', async () => {
+    const { buildWallapopUrl, parseWallapop } = await import('@/lib/deals/adapters/wallapop')
+    expect(parseWallapop(JSON.parse(fixture('wallapop-search.json')))).toEqual([
+      {
+        source: 'wallapop',
+        externalId: '8j3m5xk2pqz7',
+        title: 'Gafas FPV Walksnail Avatar',
+        price: 210,
+        currency: 'EUR',
+        location: 'Madrid',
+        country: 'ES',
+        url: 'https://es.wallapop.com/item/gafas-fpv-walksnail-avatar-1023456789',
+        image: 'https://cdn.wallapop.com/images/m.jpg',
+        postedAt: new Date(1761580800000),
+      },
+    ])
+    expect(parseWallapop(JSON.parse(fixture('wallapop-search-v2.json')))[0]).toMatchObject({
+      price: 95.5,
+      url: 'https://es.wallapop.com/item/dron-fpv-5-pulgadas-998877',
+      image: 'https://cdn.wallapop.com/images/s2.jpg',
+    })
+    expect(parseWallapop({})).toEqual([])
+    expect(buildWallapopUrl({ keywords: 'gafas fpv', countries: [] })).toBe(
+      'https://es.wallapop.com/app/search?keywords=gafas+fpv&order_by=newest',
+    )
+  })
+
+  it('throws a clear error when a page has no Next.js data', async () => {
+    const { parseLeboncoin } = await import('@/lib/deals/adapters/leboncoin')
+    expect(() => parseLeboncoin('<html><body>changed</body></html>')).toThrow(/__NEXT_DATA__/)
+  })
+})

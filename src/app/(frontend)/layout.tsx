@@ -3,8 +3,12 @@ import Link from 'next/link'
 import React from 'react'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
 import './styles.css'
+import { SITE_URL } from '@/lib/site'
 
-const siteUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+const siteUrl = SITE_URL
+
+// Render at request time: pages read the database and the runtime SERVER_URL.
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

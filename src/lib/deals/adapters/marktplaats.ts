@@ -65,7 +65,7 @@ export function parseMarktplaats(json: string, country: string): Listing[] {
 export const marktplaats: Adapter = {
   source: 'marktplaats',
   countries: Object.keys(SITES),
-  async search(query, fetch) {
+  async search(query, { fetch }) {
     const countries = (query.countries.length ? query.countries : Object.keys(SITES)).filter((c) => c in SITES)
     const listings: Listing[] = []
     for (const country of countries) {

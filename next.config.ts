@@ -7,6 +7,10 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // playwright-core loads data files (browsers.json) that file tracing doesn't pick up.
+  outputFileTracingIncludes: {
+    '/**': ['./node_modules/.pnpm/playwright-core@*/node_modules/playwright-core/**/*'],
+  },
   images: {
     localPatterns: [{ pathname: '/api/media/file/**' }],
   },

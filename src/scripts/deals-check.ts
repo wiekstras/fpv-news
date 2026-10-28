@@ -2,8 +2,9 @@
 //   pnpm deals:check ebay "dji o3" NL,DE
 //   pnpm deals:check marktplaats "fpv goggles"
 //   pnpm deals:check kleinanzeigen "radiomaster" "" 300
+//   DEALS_PERMITTED=1 pnpm deals:check vinted "dji goggles" NL   (skip robots.txt: only with the site's permission)
 import { ADAPTERS } from '../lib/deals/adapters'
-import { politeFetch } from '../lib/deals/http'
+import { toolsFor } from '../lib/deals/search'
 import type { DealSource } from '../lib/deals/options'
 
 const [source, keywords, countries = '', maxPrice] = process.argv.slice(2)
@@ -17,7 +18,7 @@ const started = Date.now()
 try {
   const listings = await adapter.search(
     { keywords, countries: countries ? countries.split(',') : [], maxPrice: maxPrice ? Number(maxPrice) : undefined },
-    politeFetch,
+    toolsFor(process.env.DEALS_PERMITTED === '1'),
   )
   console.log(`${source}: ${listings.length} listings in ${((Date.now() - started) / 1000).toFixed(1)}s`)
   for (const l of listings.slice(0, 10)) {

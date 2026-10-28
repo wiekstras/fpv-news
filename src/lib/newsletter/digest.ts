@@ -4,8 +4,9 @@ import { DIFFICULTIES, FRAME_SIZES, optionLabel } from '../builds/options'
 import { pickNews } from './pick'
 import type { DigestContent, DigestEntry } from './render'
 import { TZ } from './schedule'
+import { SITE_URL } from '../site'
 
-export const SITE = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+export const SITE = SITE_URL
 
 const buildMeta = (b: Build) =>
   [optionLabel(FRAME_SIZES, b.frameSize), optionLabel(DIFFICULTIES, b.difficulty), b.authorName && `by ${b.authorName}`]

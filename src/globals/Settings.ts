@@ -53,7 +53,17 @@ export const Settings: GlobalConfig = {
               options: DEAL_SOURCES.filter((s) => s.value in ADAPTERS),
               admin: {
                 description:
-                  'Sources the deals radar may query. eBay uses the official API. Marktplaats/2dehands and Kleinanzeigen read public search pages: only enable them if their terms allow it for you (or you have their permission). robots.txt is always respected.',
+                  'Sources the deals radar may query. eBay uses the official API; the others read the sites’ public search pages (leboncoin, Subito, Vinted and Wallapop through a headless browser). Only enable a marketplace if its terms allow it for you or you have its permission.',
+              },
+            },
+            {
+              name: 'permittedDealSources',
+              type: 'select',
+              hasMany: true,
+              options: DEAL_SOURCES.filter((s) => s.value in ADAPTERS && s.value !== 'ebay'),
+              admin: {
+                description:
+                  'Sites that gave you permission for automated searches: their robots.txt is skipped. Request spacing, the clear user agent and stopping at bot checks still apply.',
               },
             },
           ],

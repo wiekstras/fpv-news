@@ -1,6 +1,11 @@
 import type { CollectionConfig } from 'payload'
 import { adminsOnly, hiddenFromContributors, isAdminUser } from '../access'
-import { DEAL_SOURCES } from '../lib/deals/options'
+import { ebayNewPrices } from '../lib/deals/adapters/ebay'
+import { politeFetch } from '../lib/deals/http'
+import { type DealSource, DEAL_SOURCES } from '../lib/deals/options'
+import { marketPrice } from '../lib/deals/reference'
+import { loadRates } from '../lib/deals/run'
+import { searchAll } from '../lib/deals/search'
 
 export const Listings: CollectionConfig = {
   slug: 'listings',
@@ -12,6 +17,47 @@ export const Listings: CollectionConfig = {
   },
   access: adminsOnly,
   endpoints: [
+    {
+      // One-off search across all enabled platforms (dashboard "Search all platforms"). Not stored.
+      path: '/search',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminUser(req)) return Response.json({ error: 'Forbidden' }, { status: 403 })
+        const body = (req.json ? await req.json() : {}) as {
+          keywords?: string
+          minPrice?: number
+          maxPrice?: number
+          countries?: string[]
+          sources?: DealSource[]
+          excludeKeywords?: string
+          referencePrice?: number
+        }
+        const keywords = body.keywords?.trim()
+        if (!keywords) return Response.json({ error: 'Enter keywords' }, { status: 400 })
+
+        const settings = await req.payload.findGlobal({ slug: 'settings' })
+        const enabled = (settings.enabledDealSources ?? []) as DealSource[]
+        const sources = body.sources?.length ? enabled.filter((s) => body.sources!.includes(s)) : enabled
+        let reference = body.referencePrice || null
+        if (!reference && process.env.EBAY_CLIENT_ID) {
+          reference = await ebayNewPrices(keywords, politeFetch).then(marketPrice).catch(() => null)
+        }
+        const result = await searchAll({
+          query: {
+            keywords,
+            minPrice: body.minPrice,
+            maxPrice: body.maxPrice,
+            countries: body.countries ?? [],
+            excludeKeywords: body.excludeKeywords,
+          },
+          sources,
+          permitted: new Set((settings.permittedDealSources ?? []) as DealSource[]),
+          rates: await loadRates(req.payload),
+          reference,
+        })
+        return Response.json({ ...result, reference })
+      },
+    },
     {
       // Queues a deals run; the job queue picks it up within a minute.
       path: '/run-now',

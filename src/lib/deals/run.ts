@@ -1,22 +1,23 @@
 import type { Payload } from 'payload'
 import type { Listing as ListingDoc, SavedSearch } from '@/payload-types'
 import { fetchText } from '../http'
-import { ADAPTERS } from './adapters'
 import { ebayNewPrices } from './adapters/ebay'
 import { parseEcbRates, toEur } from './fx'
 import { politeFetch } from './http'
 import { matchesSearch } from './match'
+import { searchSource } from './search'
 import type { DealSource } from './options'
 import { discountPct, marketPrice } from './reference'
 import type { Listing } from './types'
+import { SITE_URL } from '../site'
 
 const ECB_URL = 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml'
-const SITE = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+const SITE = SITE_URL
 const DAY = 24 * 60 * 60 * 1000
 
 // The new price a search's listings are compared against: the manual value if set, otherwise
 // the eBay.de median of new listings, refreshed at most once a day.
-async function referencePrice(payload: Payload, search: SavedSearch): Promise<number | null> {
+export async function referencePrice(payload: Payload, search: SavedSearch): Promise<number | null> {
   if (search.referencePrice) return search.referencePrice
   const fresh = search.marketPriceAt && Date.now() - new Date(search.marketPriceAt).getTime() < DAY
   if (fresh || !process.env.EBAY_CLIENT_ID) return search.marketPrice ?? null
@@ -45,7 +46,7 @@ export async function refreshFxRates(payload: Payload) {
   return Object.keys(rates).length
 }
 
-async function loadRates(payload: Payload) {
+export async function loadRates(payload: Payload) {
   let { docs } = await payload.find({ collection: 'fx-rates', pagination: false })
   if (docs.length === 0) {
     try {
@@ -80,6 +81,7 @@ export async function runDealSearches(payload: Payload, searchId?: number): Prom
 async function runSearches(payload: Payload, searchId?: number) {
   const settings = await payload.findGlobal({ slug: 'settings' })
   const enabled = new Set((settings.enabledDealSources ?? []) as DealSource[])
+  const permitted = new Set((settings.permittedDealSources ?? []) as DealSource[])
   const rates = await loadRates(payload)
   const { docs: searches } = await payload.find({
     collection: 'saved-searches',
@@ -94,15 +96,11 @@ async function runSearches(payload: Payload, searchId?: number) {
     const reference = await referencePrice(payload, search)
     const wanted = (search.sources?.length ? search.sources : [...enabled]) as DealSource[]
     for (const source of wanted.filter((s) => enabled.has(s))) {
-      const adapter = ADAPTERS[source]
-      if (!adapter) {
-        results.push({ search: search.name, source, error: 'No adapter for this source yet' })
-        continue
-      }
       try {
-        const found = await adapter.search(
+        const found = await searchSource(
+          source,
           { keywords: search.keywords, minPrice: search.minPrice, maxPrice: search.maxPrice, countries: search.countries ?? [] },
-          politeFetch,
+          permitted.has(source),
         )
         let created = 0
         for (const listing of found) {

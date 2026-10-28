@@ -2,11 +2,12 @@ import config from '@payload-config'
 import type { MetadataRoute } from 'next'
 import { getPayload } from 'payload'
 import { NEWS_TAGS } from '@/lib/tags'
+import { SITE_URL } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const base = SITE_URL
   const payload = await getPayload({ config })
   const [news, sources, builds] = await Promise.all([
     payload.find({

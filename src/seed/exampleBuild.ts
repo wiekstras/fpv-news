@@ -1,6 +1,4 @@
-import config from '@payload-config'
 import { convertMarkdownToLexical, editorConfigFactory } from '@payloadcms/richtext-lexical'
-import { randomBytes } from 'crypto'
 import type { Payload } from 'payload'
 import sharp from 'sharp'
 import type { Part } from '@/payload-types'
@@ -63,14 +61,6 @@ export async function seedExampleBuild(payload: Payload) {
   const existing = await payload.count({ collection: 'builds', where: { slug: { equals: SLUG } } })
   if (existing.totalDocs > 0) return
 
-  // Demo author with a random password; nobody needs to log in as them.
-  let { docs: [author] } = await payload.find({ collection: 'users', where: { email: { equals: 'demo-pilot@example.com' } } })
-  author ??= await payload.create({
-    collection: 'users',
-    data: { name: 'Demo Pilot', email: 'demo-pilot@example.com', password: randomBytes(24).toString('hex'), role: 'contributor', _verified: true },
-    disableVerificationEmail: true,
-  })
-
   const retailers = await Promise.all(RETAILERS.map((data) => payload.create({ collection: 'retailers', data })))
 
   const parts = []
@@ -91,14 +81,14 @@ export async function seedExampleBuild(payload: Payload) {
     photos.push(
       await payload.create({
         collection: 'media',
-        data: { alt: label, uploadedBy: author.id },
+        data: { alt: label },
         file: { data, mimetype: 'image/jpeg', name: `${label.replace(/\W+/g, '-').toLowerCase()}.jpg`, size: data.length },
       }),
     )
   }
 
   const content = convertMarkdownToLexical({
-    editorConfig: await editorConfigFactory.default({ config: await config }),
+    editorConfig: await editorConfigFactory.default({ config: payload.config }),
     markdown: MARKDOWN,
   })
 
@@ -109,7 +99,8 @@ export async function seedExampleBuild(payload: Payload) {
       title: 'Budget 5" freestyle quad that survives anything',
       slug: SLUG,
       status: 'published',
-      author: author.id,
+      // No user account: creating one would take the "first user becomes admin" slot on a fresh install.
+      authorName: 'FPV News',
       excerpt: 'A tough, cheap-to-repair 5" freestyle build with Walksnail HD and ExpressLRS that flies great on the stock tune.',
       difficulty: 'intermediate',
       frameSize: '5"',

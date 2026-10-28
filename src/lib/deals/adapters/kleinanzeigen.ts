@@ -64,7 +64,7 @@ export function parseKleinanzeigen(html: string, now = new Date()): Listing[] {
 export const kleinanzeigen: Adapter = {
   source: 'kleinanzeigen',
   countries: ['DE'],
-  async search(query, fetch) {
+  async search(query, { fetch }) {
     if (query.countries.length && !query.countries.includes('DE')) return []
     return parseKleinanzeigen(await fetch(buildKleinanzeigenUrl(query), { headers: { accept: 'text/html' } }))
   },

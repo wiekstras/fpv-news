@@ -102,7 +102,7 @@ export async function ebayNewPrices(keywords: string, fetch: Fetcher): Promise<n
 export const ebay: Adapter = {
   source: 'ebay',
   countries: Object.keys(MARKETPLACES),
-  async search(query, fetch) {
+  async search(query, { fetch }) {
     const countries = (query.countries.length ? query.countries : ['DE', 'NL', 'BE', 'FR', 'IT', 'ES', 'AT']).filter(
       (c) => c in MARKETPLACES,
     )

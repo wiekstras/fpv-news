@@ -131,9 +131,13 @@ Dashboard: **/admin/deals** (also in the admin sidebar). Not public; contributor
    and sources (empty = all).
 3. Searches run **every 3 hours** (job `runDeals`), or press **Run searches now** on the dashboard. Each saved search
    shows its last result per source, including errors.
-4. On the dashboard: filter by keyword, source, country, price range and state; **NEW** marks listings first seen since
+4. **Search all platforms now** (top of the dashboard): a one-off search across every enabled platform at once:
+   keywords, price range, countries, exclude words and platform checkboxes. Results from all sites are merged, sorted
+   cheapest first, with the % below the new price. Nothing is stored unless you press *Save as saved search*. Each site
+   is still queried politely, so a search over the browser-based sites can take up to a minute.
+5. On the dashboard: filter by keyword, source, country, price range and state; **NEW** marks listings first seen since
    your previous visit (a visit = opening the dashboard after 30+ minutes away); ★ marks interesting, ✕ ignores.
-5. When a new listing is under a search's *Alert below* price, or at least *Alert at % below new* cheaper than new, one
+6. When a new listing is under a search's *Alert below* price, or at least *Alert at % below new* cheaper than new, one
    summary email per run goes to the admin email.
 
 ### Discount vs. new price
@@ -155,78 +159,111 @@ the first run if missing). Prices in a currency without a rate stay unconverted 
 
 ### How we fetch
 
-Every request goes through `src/lib/deals/http.ts`: a clear user agent (`FPVNewsDealsBot/1.0 (+your site)`), robots.txt
-checked per host (if robots.txt can't be fetched the site is treated as off-limits), one request per host every
-8–12 s, a 15-minute cache, and a 6-hour pause for a host that answers 403/429/503. No logins, no cookies, no captcha or
-bot-protection workarounds. Set `DEALS_CONTACT_EMAIL` to add a contact address to the user agent.
+Plain HTTP requests go through `src/lib/deals/http.ts`; sites whose results are rendered with JavaScript are opened in a
+headless Chromium (`src/lib/deals/browser.ts`, Playwright). Both follow the same rules per site:
+
+- a clear identity: user agent `FPVNewsDealsBot/1.0 (+your site)` (the browser appends it to its normal user agent);
+- robots.txt is checked (if it can't be fetched the site is treated as off-limits), **except for sites you list under
+  *Settings → Deals → Sites that gave permission***;
+- one request per site every 8–12 s, a 15-minute cache, and a 6-hour pause when a site answers 403/429/503 or shows a
+  bot check (captcha/challenge page). The radar never tries to get past such a check, and doesn't log in.
+
+Set `DEALS_CONTACT_EMAIL` to add a contact address to the user agent. If a site that gave you permission still shows a bot
+check, ask them to allow-list the bot's user agent or your server's IP, or for API access.
 
 ### Sources
 
 | Source | Status | How |
 |---|---|---|
 | eBay (DE, AT, NL, BE, FR, IT, ES, IE, PL, GB) | ✅ enabled by default | Official Browse API. Needs `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` (developer.ebay.com → Application keys, production). Used + unspecified condition, newest first. |
-| Marktplaats (NL) / 2dehands (BE) | ✅ built, **off by default** | The JSON their own search page loads (`/lrp/api/search`). Their terms restrict automated collection: enable only if you have their permission. |
-| Kleinanzeigen (DE) | ✅ built, **off by default** | Public search results page. Same note on terms/permission. |
-| Subito (IT) | ⏸ not built | Couldn't inspect its pages from the build environment; next candidate once it can be checked. |
-| Wallapop / Milanuncios (ES) | ⏸ not built | Wallapop's search runs through an app API with device headers; Milanuncios sits behind bot protection. Neither can be done without working around protections. |
-| leboncoin (FR) | ⛔ skipped | Protected by DataDome bot protection; automated access would mean bypassing it. |
-| Vinted | ⛔ skipped | Search requires a session cookie and is behind bot protection; its terms forbid scraping. |
+| Marktplaats (NL) / 2dehands (BE) | ✅ HTTP, off by default | The JSON their own search page loads (`/lrp/api/search`). |
+| Kleinanzeigen (DE) | ✅ HTTP, off by default | Public search results page. |
+| Subito (IT) | ✅ browser, off by default | Search page; results read from its Next.js page data. |
+| leboncoin (FR) | ✅ browser, off by default | Search page; results read from its Next.js page data. Uses DataDome bot protection, so expect it to stop at a bot check unless leboncoin allow-lists you. |
+| Vinted (14 countries; NL, DE, FR, BE by default) | ✅ browser, off by default | Catalog page; results read from the JSON the page loads (`/api/v2/catalog/items`). |
+| Wallapop (ES) | ✅ browser, off by default | Search page; results read from the JSON the page loads (`api.wallapop.com/api/v3/search`). |
+| Milanuncios (ES) | ⏸ not built | Not enough known about its pages to write a parser without live access. |
 | Facebook Marketplace | ⛔ out of scope | As agreed. |
 
-**Not yet verified live.** The build environment had no access to these sites, so the Marktplaats and Kleinanzeigen
-parsers were written against saved samples of their formats (`tests/fixtures/deals`). Before relying on them, run a
-live check (no database needed):
+Enable a marketplace only if its terms allow it for you or you have its permission; tick it under *Sites that gave
+permission* to skip its robots.txt.
+
+**Not yet verified live.** The build environment had no access to these sites, so every marketplace parser was
+written against saved samples of their formats (`tests/fixtures/deals`). Before relying on one, run a live check (no
+database needed; browser sources need Chromium, see below):
 
 ```bash
 pnpm deals:check ebay "dji o3" NL,DE
 pnpm deals:check marktplaats "fpv goggles" NL
 pnpm deals:check kleinanzeigen "radiomaster" "" 300
+DEALS_PERMITTED=1 pnpm deals:check vinted "dji goggles" NL        # DEALS_PERMITTED=1 skips robots.txt
+DEALS_PERMITTED=1 pnpm deals:check subito "radiomaster"
+DEALS_PERMITTED=1 pnpm deals:check wallapop "gafas fpv"
+DEALS_PERMITTED=1 pnpm deals:check leboncoin "dji o3"
 ```
+
+Locally, install Chromium once with `pnpm exec playwright-core install chromium` (or point `PLAYWRIGHT_CHROMIUM_PATH` at
+a Chrome/Chromium you have). The Docker image already contains it.
 
 It prints how many listings came back and the first ten. Zero listings or a parse error means the page format changed:
 save a fresh response into `tests/fixtures/deals/` and adjust the parser until `pnpm test` passes.
 
 ### Adding a source
 
-Create `src/lib/deals/adapters/<name>.ts` exporting an `Adapter` (`search(query, fetch) → Listing[]`) with a pure
-`parse…()` function, add a fixture + test, then register it in `src/lib/deals/adapters/index.ts`.
+Create `src/lib/deals/adapters/<name>.ts` exporting an `Adapter` (`search(query, { fetch, browser }) → Listing[]`) with
+a pure `parse…()` function, add a fixture + test, then register it in `src/lib/deals/adapters/index.ts`.
 
 ## Deploy to Railway
 
-The repo contains a `Dockerfile` (Next.js standalone build) and `railway.json` (Dockerfile builder, health check,
-one replica). Pending migrations run automatically when the app boots, and the job queue (news every 30 min, deals
-every 3 h, digest drafts, FX rates) runs inside the app process, so you need just one service plus Postgres.
+Ready to deploy as-is. The repo has a `Dockerfile` and `railway.json`; Railway builds the image from the Dockerfile.
 
-1. **New project → Deploy from GitHub repo** → pick this repo/branch.
-2. **Add PostgreSQL** (New → Database → PostgreSQL).
-3. **Add a bucket** (New → Bucket) for uploads; open its *Credentials* tab.
-4. **Variables** on the app service:
+**What happens on boot:** the app waits up to a minute for the database (then exits so Railway restarts it), runs
+pending migrations, loads the starter data if the database is empty (16 news sources + the example build; no user
+accounts), and starts the background jobs (news every 15 min, deals every 3 h, digest drafts, exchange rates).
+The image is built on Microsoft's Playwright image, so the headless Chromium for the browser-based deal sources is
+included. This whole flow was tested locally with the production image against an empty database.
 
-   | Variable | Value |
+### Steps
+
+1. **New project → Deploy from GitHub repo** → pick this repo and branch.
+2. **Add PostgreSQL:** *New → Database → PostgreSQL*.
+3. **Variables** on the app service (*Variables → Raw editor*):
+
+   ```
+   DATABASE_URL=${{Postgres.DATABASE_URL}}
+   PAYLOAD_SECRET=<output of: openssl rand -hex 32>
+   ```
+
+   That's all it needs to run. Add the rest when you get to it:
+
+   | Variable | When |
    |---|---|
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
-   | `PAYLOAD_SECRET` | output of `openssl rand -hex 32` |
-   | `NEXT_PUBLIC_SERVER_URL` | `https://your-domain` (no trailing slash; used at build time, so redeploy after changing it) |
-   | `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | from the bucket's credentials; try `S3_FORCE_PATH_STYLE=true` if uploads fail |
-   | `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Resend, with a verified sending domain |
-   | `RESEND_WEBHOOK_SECRET` | after step 7 |
-   | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | eBay developer keys (deals radar) |
+   | `SERVER_URL` | once you add a custom domain (`https://fpvnews.example`). Until then the Railway domain is used automatically. |
+   | `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | before people upload photos: *New → Bucket*, copy its credentials. Without a bucket uploads are lost on every redeploy. Try `S3_FORCE_PATH_STYLE=true` if uploads fail. |
+   | `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | for verification, newsletter and alert emails (Resend, verified sending domain) |
+   | `RESEND_WEBHOOK_SECRET` | newsletter open/click stats (step 6) |
+   | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | eBay deals + automatic new prices |
    | `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`) | only if you turn on Claude summaries |
    | `DEALS_CONTACT_EMAIL` | optional, shown in the deals bot's user agent |
 
-5. **Networking → Generate domain** (or add your custom domain) and make sure `NEXT_PUBLIC_SERVER_URL` matches.
-6. Open `https://your-domain/admin` and create the first account (it becomes admin). Then set *Settings → Site →
-   Admin email*, the newsletter day/time and the deal sources. To load the starter data, run from your machine:
-   `DATABASE_URL="<Postgres public URL from Railway>" pnpm seed`.
-7. **Resend:** enable open/click tracking for the domain and add a webhook to
-   `https://your-domain/newsletter/resend-webhook` (delivered, opened, clicked, bounced, complained); copy its signing
-   secret into `RESEND_WEBHOOK_SECRET`.
-8. After the first deploy: *Sources → Fetch all sources now* and *Deals radar → Run searches now*, then check for errors
-   on the sources and saved searches.
+4. **Settings → Networking → Generate domain.** Deploy (or redeploy after adding variables). The health check is
+   `/robots.txt`; the first boot takes a little longer because of the migrations.
+5. Open `https://<your-domain>/admin` and **create the first account; it becomes the admin.** Then fill in *Settings*:
+   admin email (alerts, digest notices), newsletter day/time, deal sources and sites that gave permission.
+6. **Resend:** enable open/click tracking for the domain and add a webhook to
+   `https://<your-domain>/newsletter/resend-webhook` (delivered, opened, clicked, bounced, complained); put its signing
+   secret in `RESEND_WEBHOOK_SECRET`.
+7. Press *Sources → Fetch all sources now* and *Deals radar → Run searches now* once, and check the sources and saved
+   searches for errors.
 
-Keep the app at **one replica**: the job crons run in-process. Turn on Railway's Postgres backups.
+Keep the app at **one replica** (set in `railway.json`): the job crons run in-process. Turn on Railway's Postgres
+backups. Give the service at least 1 GB of memory; Chromium is only started during deal searches and closes after a
+minute idle.
 
-Test the image locally: `docker build -t fpv-news --build-arg NEXT_PUBLIC_SERVER_URL=http://localhost:3000 .` and
+**Before every deploy** run `pnpm verify` locally (typecheck, tests, and a check that every schema change has a
+migration; needs the local database running).
+
+Test the production image locally: `docker build -t fpv-news .` then
 `docker run -p 3000:3000 -e DATABASE_URL=… -e PAYLOAD_SECRET=… fpv-news`.
 
 ## Roles
@@ -253,6 +290,9 @@ See [`.env.example`](.env.example). Each variable is documented there.
 | `pnpm typecheck` | TypeScript check |
 | `pnpm generate:types` | Regenerate `src/payload-types.ts` after changing collections |
 | `pnpm payload migrate:create <name>` | New DB migration |
+| `pnpm check:migrations` | Fails if a collection changed without a migration |
+| `pnpm verify` | typecheck + tests + migration check: run before deploying |
+| `pnpm deals:check <source> "<keywords>" [countries] [maxPrice]` | Live check of one deals adapter |
 
 ## Project layout
 

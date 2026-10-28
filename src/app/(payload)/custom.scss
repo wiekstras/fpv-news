@@ -39,3 +39,11 @@
   &.is-great { background: var(--theme-success-500); color: #000; }
   &.is-worse { color: var(--theme-error-500); }
 }
+.deals__search-all {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  padding: var(--base);
+  margin: var(--base) 0 calc(var(--base) * 1.5);
+  h2 { margin-top: 0; }
+}
+.deals__sources { display: inline-flex; flex-wrap: wrap; gap: 10px; label { white-space: nowrap; } }

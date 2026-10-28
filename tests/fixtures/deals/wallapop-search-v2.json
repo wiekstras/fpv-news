@@ -1,0 +1,21 @@
+{
+ "search_objects": [
+  {
+   "id": "q8w7e6r5",
+   "title": "Dron FPV 5 pulgadas",
+   "price": 95.5,
+   "currency": "EUR",
+   "web_slug": "dron-fpv-5-pulgadas-998877",
+   "images": [
+    {
+     "urls": {
+      "small": "https://cdn.wallapop.com/images/s2.jpg"
+     }
+    }
+   ],
+   "location": {
+    "city": "Valencia"
+   }
+  }
+ ]
+}

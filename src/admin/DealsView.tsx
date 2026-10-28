@@ -2,7 +2,8 @@ import { DefaultTemplate } from '@payloadcms/next/templates'
 import { redirect } from 'next/navigation'
 import type { AdminViewServerProps, Where } from 'payload'
 import { COUNTRIES, DEAL_SOURCES } from '@/lib/deals/options'
-import { DealActions, RunDealsButton } from './DealsClient'
+import { ADAPTERS } from '@/lib/deals/adapters'
+import { DealActions, DealsSearch, RunDealsButton } from './DealsClient'
 
 const SESSION_GAP_MS = 30 * 60 * 1000
 
@@ -50,6 +51,9 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
     }
   }
 
+  const settings = await req.payload.findGlobal({ slug: 'settings', depth: 0 })
+  const enabledSources: string[] = settings.enabledDealSources ?? []
+
   const [listings, searches] = await Promise.all([
     req.payload.find({
       collection: 'listings',
@@ -92,6 +96,9 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
           <RunDealsButton />
         </header>
 
+        <DealsSearch sources={DEAL_SOURCES.filter((s) => s.value in ADAPTERS && enabledSources.includes(s.value))} />
+
+        <h2>Saved searches</h2>
         <section className="deals__searches">
           {searches.docs.length === 0 && (
             <p>

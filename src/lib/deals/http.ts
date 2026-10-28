@@ -1,10 +1,11 @@
 import { isAllowed, parseRobots } from './robots'
 import type { Fetcher } from './types'
+import { SITE_URL } from '../site'
 
 // Every marketplace request goes through here: clear user agent, robots.txt,
 // one request per host every ~10s (with jitter), a short cache and a long
 // back-off when a site blocks or rate-limits us. We never retry around a block.
-const SITE = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+const SITE = SITE_URL
 export const USER_AGENT = `FPVNewsDealsBot/1.0 (+${SITE}${process.env.DEALS_CONTACT_EMAIL ? `; ${process.env.DEALS_CONTACT_EMAIL}` : ''})`
 
 const MIN_INTERVAL_MS = Number(process.env.DEALS_MIN_INTERVAL_MS ?? 8_000)
@@ -52,6 +53,21 @@ async function robotsAllows(url: URL) {
   return isAllowed(entry.rules, url.pathname + url.search)
 }
 
+// Shared by the HTTP and browser fetchers: back-off check, robots.txt (unless the site gave
+// permission) and the per-host request spacing.
+export async function beforeRequest(target: URL, respectRobots: boolean) {
+  const until = blockedUntil.get(target.host) ?? 0
+  if (until > Date.now()) throw new BlockedError(`${target.host} blocked us earlier; paused until ${new Date(until).toISOString()}`)
+  if (respectRobots && !(await robotsAllows(target))) {
+    throw new BlockedError(`robots.txt of ${target.host} disallows ${target.pathname}`)
+  }
+  await waitTurn(target.host)
+}
+
+export function markBlocked(host: string) {
+  blockedUntil.set(host, Date.now() + BLOCK_BACKOFF_MS)
+}
+
 export const politeFetch: Fetcher = async (url, init = {}) => {
   const target = new URL(url)
   const host = target.host
@@ -63,11 +79,7 @@ export const politeFetch: Fetcher = async (url, init = {}) => {
   const hit = method === 'GET' ? cache.get(key) : undefined
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.body
 
-  if (init.respectRobots !== false && !(await robotsAllows(target))) {
-    throw new BlockedError(`robots.txt of ${host} disallows ${target.pathname}`)
-  }
-
-  await waitTurn(host)
+  await beforeRequest(target, init.respectRobots !== false)
   const res = await fetch(url, {
     method,
     body: init.body,
@@ -75,7 +87,7 @@ export const politeFetch: Fetcher = async (url, init = {}) => {
     signal: AbortSignal.timeout(20_000),
   })
   if (res.status === 403 || res.status === 429 || res.status === 503) {
-    blockedUntil.set(host, Date.now() + BLOCK_BACKOFF_MS)
+    markBlocked(host)
     throw new BlockedError(`${host} answered HTTP ${res.status}; pausing this source for 6 hours`)
   }
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`)

@@ -1,0 +1,49 @@
+{
+ "data": {
+  "section": {
+   "payload": {
+    "order": "newest",
+    "items": [
+     {
+      "id": "8j3m5xk2pqz7",
+      "user_id": "u1",
+      "title": "Gafas FPV Walksnail Avatar",
+      "description": "Como nuevas",
+      "category_id": 12465,
+      "price": {
+       "amount": 210,
+       "currency": "EUR"
+      },
+      "images": [
+       {
+        "average_hex_color": "#000",
+        "urls": {
+         "small": "https://cdn.wallapop.com/images/s.jpg",
+         "medium": "https://cdn.wallapop.com/images/m.jpg",
+         "big": "https://cdn.wallapop.com/images/b.jpg"
+        }
+       }
+      ],
+      "reserved": {
+       "flag": false
+      },
+      "location": {
+       "postal_code": "28001",
+       "city": "Madrid",
+       "country_code": "ES"
+      },
+      "shipping": {
+       "user_allows_shipping": true
+      },
+      "web_slug": "gafas-fpv-walksnail-avatar-1023456789",
+      "created_at": 1761580800000,
+      "modified_at": 1761580800000
+     }
+    ]
+   }
+  }
+ },
+ "meta": {
+  "next_page": "abc"
+ }
+}

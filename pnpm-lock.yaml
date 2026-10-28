@@ -44,6 +44,9 @@ importers:
       payload:
         specifier: 3.92.1
         version: 3.92.1(graphql@16.14.2)(typescript@5.7.3)
+      playwright-core:
+        specifier: 1.63.0
+        version: 1.63.0
       react:
         specifier: 19.2.6
         version: 19.2.6
@@ -2711,6 +2714,11 @@ packages:
 
   pino@9.14.0:
     resolution: {integrity: sha512-8OEwKp5juEvb/MjpIc4hjqfgCNysrS94RIOMXYvpYCdm/jglrKEiAYmiumbmGhCvs+IcInsphYDFwqrjr7398w==}
+    hasBin: true
+
+  playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+    engines: {node: '>=20'}
     hasBin: true
 
   pluralize@8.0.0:
@@ -6050,6 +6058,8 @@ snapshots:
       safe-stable-stringify: 2.5.0
       sonic-boom: 4.2.1
       thread-stream: 3.2.0
+
+  playwright-core@1.63.0: {}
 
   pluralize@8.0.0: {}
 

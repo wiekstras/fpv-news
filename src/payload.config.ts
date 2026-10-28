@@ -26,11 +26,12 @@ import { fetchFxRates, runDeals } from './jobs/deals'
 import { fetchNews } from './jobs/fetchNews'
 import { prepareDigest } from './jobs/prepareDigest'
 import { migrations } from './migrations'
+import { SITE_URL } from './lib/site'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default buildConfig({
-  serverURL: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000',
+  serverURL: SITE_URL,
   admin: {
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },

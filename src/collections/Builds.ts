@@ -10,9 +10,10 @@ import { adminsField, isAdminUser, loggedIn } from '../access'
 import { DIFFICULTIES, FRAME_SIZES } from '../lib/builds/options'
 import { slugify } from '../lib/slugify'
 import { BUILD_TAGS } from '../lib/tags'
+import { SITE_URL } from '../lib/site'
 
 const editableStatuses = ['draft', 'pending']
-const siteUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+const siteUrl = SITE_URL
 
 // Emails for the moderation flow. Failures are logged, never block the save.
 const notifyOnStatusChange: CollectionAfterChangeHook<Build> = async ({ context, doc, previousDoc, req }) => {
@@ -107,9 +108,10 @@ export const Builds: CollectionConfig = {
           data.publishedAt = new Date().toISOString()
         }
         // Store the author's display name so public pages don't need access to user records.
-        // Always recomputed, so a submitted authorName is ignored.
+        // Recomputed from the author, so a contributor can't submit someone else's name. Builds without
+        // an author account (the seeded example) keep the name they were given.
         const authorId = typeof data.author === 'object' ? data.author?.id : (data.author ?? originalDoc?.author)
-        data.authorName = null
+        if (req.user && !isAdminUser(req)) data.authorName = null
         if (authorId) {
           const author = await req.payload.findByID({ collection: 'users', id: authorId, depth: 0, overrideAccess: true, req })
           data.authorName = author.name
