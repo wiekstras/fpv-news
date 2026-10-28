@@ -1,8 +1,18 @@
+import type { Instrumentation } from 'next'
+
 // Initialise Payload when the server starts: runs pending migrations, seeds an empty database
 // and starts the job crons (news, digests, deals) even before the first request comes in.
 export async function register() {
   // Skip during `next build`: the build environment may not have database access.
   if (process.env.NEXT_RUNTIME !== 'nodejs' || process.env.NEXT_PHASE === 'phase-production-build') return
+  if (process.env.SENTRY_DSN) {
+    const Sentry = await import('@sentry/nextjs')
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.RAILWAY_ENVIRONMENT_NAME || process.env.NODE_ENV,
+      tracesSampleRate: 0,
+    })
+  }
   const { getPayload } = await import('payload')
   const { default: config } = await import('@payload-config')
   const { seedStarterData } = await import('./seed/starterData')
@@ -24,4 +34,11 @@ export async function register() {
       await new Promise((r) => setTimeout(r, 5000))
     }
   }
+}
+
+// Server errors (pages, API routes, server actions) go to Sentry when SENTRY_DSN is set.
+export const onRequestError: Instrumentation.onRequestError = async (...args) => {
+  if (!process.env.SENTRY_DSN || process.env.NEXT_RUNTIME !== 'nodejs') return
+  const Sentry = await import('@sentry/nextjs')
+  Sentry.captureRequestError(...args)
 }

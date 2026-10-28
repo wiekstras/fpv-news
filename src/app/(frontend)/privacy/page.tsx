@@ -20,7 +20,12 @@ export default function PrivacyPage() {
       <h2>News and affiliate links</h2>
       <p>
         News items link to the original sources. Some parts lists contain affiliate links: the shop may know you came from
-        us, and we may earn a commission. We don&apos;t use analytics or advertising cookies.
+        us, and we may earn a commission. We don&apos;t use advertising or tracking cookies.
+      </p>
+      <h2>Visitor statistics</h2>
+      <p>
+        We count page views with a privacy-friendly, cookie-less analytics tool. It doesn&apos;t store personal data or
+        follow you across sites; we only see totals such as popular pages and referring sites.
       </p>
     </article>
   )

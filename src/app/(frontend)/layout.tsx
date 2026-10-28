@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Script from 'next/script'
 import React from 'react'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
 import './styles.css'
@@ -21,6 +22,7 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
   return (
     <html lang="en">
       <body className="min-h-screen font-sans antialiased">
+        <Analytics />
         <header className="border-b border-border">
           <nav className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-4">
             <Link href="/" className="font-mono text-lg font-bold tracking-tight">
@@ -53,4 +55,29 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
       </body>
     </html>
   )
+}
+
+// Privacy-friendly visitor stats (no cookies): Plausible or Umami, switched on by environment variables.
+function Analytics() {
+  if (process.env.PLAUSIBLE_DOMAIN) {
+    return (
+      <Script
+        defer
+        data-domain={process.env.PLAUSIBLE_DOMAIN}
+        src={process.env.PLAUSIBLE_SCRIPT_URL || 'https://plausible.io/js/script.outbound-links.js'}
+        strategy="afterInteractive"
+      />
+    )
+  }
+  if (process.env.UMAMI_WEBSITE_ID) {
+    return (
+      <Script
+        defer
+        data-website-id={process.env.UMAMI_WEBSITE_ID}
+        src={process.env.UMAMI_SCRIPT_URL || 'https://cloud.umami.is/script.js'}
+        strategy="afterInteractive"
+      />
+    )
+  }
+  return null
 }

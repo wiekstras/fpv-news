@@ -3,8 +3,11 @@ import { createServer, type Server } from 'http'
 import type { AddressInfo } from 'net'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
-// Real headless Chromium against a local server (no live requests). Skipped when no browser is installed.
-const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM_PATH || '/opt/pw-browsers/chromium'
+import { chromium } from 'playwright-core'
+
+// Real headless Chromium against a local server (no live requests). Skipped when no browser is installed
+// (install one with `pnpm exec playwright-core install chromium`).
+const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM_PATH || chromium.executablePath()
 const hasBrowser = existsSync(CHROMIUM)
 
 let server: Server

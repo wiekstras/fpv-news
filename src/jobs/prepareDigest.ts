@@ -1,4 +1,5 @@
 import type { TaskConfig } from 'payload'
+import { reported } from '@/lib/monitoring'
 import { createDigestDraft, SITE } from '@/lib/newsletter/digest'
 import { lastScheduledAt } from '@/lib/newsletter/schedule'
 
@@ -7,7 +8,7 @@ import { lastScheduledAt } from '@/lib/newsletter/schedule'
 export const prepareDigest: TaskConfig<'prepareDigest'> = {
   slug: 'prepareDigest',
   schedule: [{ cron: '0 */15 * * * *', queue: 'newsletter' }],
-  handler: async ({ req }) => {
+  handler: reported('prepareDigest', async ({ req }) => {
     const { payload } = req
     const settings = await payload.findGlobal({ slug: 'settings' })
     const scheduledAt = lastScheduledAt(new Date(), Number(settings.digestDay), settings.digestTime)
@@ -29,5 +30,5 @@ export const prepareDigest: TaskConfig<'prepareDigest'> = {
       })
     }
     return { output: {} }
-  },
+  }),
 }

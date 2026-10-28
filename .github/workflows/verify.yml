@@ -1,0 +1,38 @@
+# Runs on every push and pull request: typecheck, tests (incl. headless Chromium), the
+# "every schema change has a migration" check and a production build.
+name: Verify
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fpv
+          POSTGRES_PASSWORD: fpv
+          POSTGRES_DB: fpv
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://fpv:fpv@localhost:5432/fpv
+      PAYLOAD_SECRET: ci-only-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright-core install --with-deps chromium
+      - run: pnpm verify
+      - run: pnpm build
