@@ -323,3 +323,105 @@ describe('browser-based adapters', () => {
     expect(() => parseLeboncoin('<html><body>changed</body></html>')).toThrow(/__NEXT_DATA__/)
   })
 })
+
+describe('OLX, willhaben and Bazoš adapters', () => {
+  it('OLX: maps API offers with local currency and sized photo URLs', async () => {
+    const { buildOlxUrl, parseOlx } = await import('@/lib/deals/adapters/olx')
+    const [first, second] = parseOlx(fixture('olx-offers.json'), 'PL')
+    expect(first).toEqual({
+      source: 'olx',
+      externalId: 'PL:901234567',
+      title: 'DJI O3 Air Unit jak nowy',
+      price: 650,
+      currency: 'PLN',
+      location: 'Warszawa',
+      country: 'PL',
+      url: 'https://www.olx.pl/d/oferta/dji-o3-air-unit-CID99-IDabc.html',
+      image: 'https://ireland.apollo.olxcdn.com:443/v1/files/abc123/image;s=400x300',
+      postedAt: new Date('2026-10-27T13:05:22Z'),
+    })
+    expect(second).toMatchObject({ price: null, currency: 'EUR', image: undefined })
+    expect(buildOlxUrl({ keywords: 'dji o3', countries: [] }, 'RO')).toBe(
+      'https://www.olx.ro/api/v1/offers/?offset=0&limit=40&query=dji+o3&sort_by=created_at%3Adesc',
+    )
+  })
+
+  it('willhaben: reads adverts from the Next.js page data', async () => {
+    const { buildWillhabenUrl, parseWillhaben } = await import('@/lib/deals/adapters/willhaben')
+    expect(parseWillhaben(fixture('willhaben-search.html'))).toEqual([
+      {
+        source: 'willhaben',
+        externalId: '1234567890',
+        title: 'DJI O3 Air Unit, kaum benutzt',
+        price: 160,
+        currency: 'EUR',
+        location: '1070 Wien, 07. Bezirk, Neubau',
+        country: 'AT',
+        url: 'https://www.willhaben.at/iad/d/kaufen-und-verkaufen/dji-o3-air-unit-1234567890/',
+        image: 'https://cache.willhaben.at/mmo/9/1/2/3/4_123456789.jpg',
+        postedAt: new Date('2026-10-27T13:05:00Z'),
+      },
+    ])
+    expect(buildWillhabenUrl({ keywords: 'dji o3', maxPrice: 200, countries: [] })).toBe(
+      'https://www.willhaben.at/iad/kaufen-und-verkaufen/marktplatz?keyword=dji+o3&sort=1&rows=60&PRICE_TO=200',
+    )
+  })
+
+  it('Bazoš: parses result rows with CZK prices, "by agreement" and relative links', async () => {
+    const { parseBazos, parseBazosPrice } = await import('@/lib/deals/adapters/bazos')
+    const [first, second] = parseBazos(fixture('bazos-search.html'), 'CZ', 'https://www.bazos.cz/search.php?hledat=dji')
+    expect(first).toEqual({
+      source: 'bazos',
+      externalId: 'CZ:187654321',
+      title: 'DJI O3 Air Unit',
+      price: 4500,
+      currency: 'CZK',
+      location: 'Praha 110 00',
+      country: 'CZ',
+      url: 'https://elektro.bazos.cz/inzerat/187654321/dji-o3-air-unit.php',
+      image: 'https://www.bazos.cz/img/1t/321/187654321.jpg',
+      postedAt: new Date('2026-10-27T12:00:00Z'),
+    })
+    expect(second).toMatchObject({ price: null, url: 'https://www.bazos.cz/inzerat/187654999/radiomaster.php', postedAt: new Date('2026-09-01T12:00:00Z') })
+    expect(parseBazosPrice('120 €')).toBe(120)
+    expect(parseBazosPrice('V textu')).toBeNull()
+  })
+})
+
+describe('generic marketplace adapter (schema.org data)', () => {
+  const site = { slug: 'site', name: 'Site', country: 'SE', currency: 'SEK', mode: 'http' as const, searchUrl: 'https://site.example/search?q={q}&max={max}' }
+
+  it('builds the search URL from the template', async () => {
+    const { buildSiteUrl } = await import('@/lib/deals/adapters/generic')
+    expect(buildSiteUrl(site.searchUrl, { keywords: 'dji o3', maxPrice: 300, countries: [] })).toBe('https://site.example/search?q=dji%20o3&max=300')
+    expect(buildSiteUrl(site.searchUrl, { keywords: 'x', countries: [] })).toBe('https://site.example/search?q=x&max=')
+  })
+
+  it('reads JSON-LD item lists (ListItem urls, offer arrays, aggregate offers), dedupes, skips broken blocks', async () => {
+    const { listingsFromPage } = await import('@/lib/deals/adapters/generic')
+    const listings = listingsFromPage(site, fixture('generic-itemlist.html'), 'https://site.example/search?q=x')
+    expect(listings.map((l) => [l.title, l.price, l.currency, l.url])).toEqual([
+      ['FPV Goggles', 120, 'EUR', 'https://site.example/ad/111'],
+      ['Radio TX16S', 90, 'EUR', 'https://site.example/ad/222'],
+      ['Bundle', 55, 'SEK', 'https://site.example/ad/333'],
+    ])
+    expect(listings[0]).toMatchObject({ source: 'other', marketplace: 'Site', country: 'SE', image: 'https://site.example/img/111.jpg', externalId: 'site:https://site.example/ad/111' })
+  })
+
+  it('reads Offers inside @graph and microdata products', async () => {
+    const { extractListings } = await import('@/lib/deals/structuredData')
+    expect(extractListings(fixture('generic-graph.html'), 'https://site.example/')).toEqual([
+      { name: 'Tinyhawk', url: 'https://site.example/ad/9', price: 45, currency: 'DKK', image: 'https://site.example/9.jpg' },
+    ])
+    expect(extractListings(fixture('generic-microdata.html'), 'https://hu.example/s')).toEqual([
+      { name: 'Walksnail Avatar Kit', url: 'https://hu.example/item/5', price: 1250.5, currency: 'HUF', image: 'https://hu.example/5.jpg' },
+    ])
+  })
+
+  it('reports pages without structured data instead of returning nothing silently', async () => {
+    const { searchSite } = await import('@/lib/deals/adapters/generic')
+    const tools = { fetch: async () => '<html><body>no data</body></html>', browser: async () => ({ html: '' }) }
+    await expect(searchSite(site, { keywords: 'x', countries: [] }, tools)).rejects.toThrow(/structured data/)
+    expect(await searchSite(site, { keywords: 'x', countries: ['NL'] }, tools)).toEqual([])
+  })
+})

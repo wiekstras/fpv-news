@@ -13,6 +13,7 @@ import { Digests } from './collections/Digests'
 import { EmailEvents } from './collections/EmailEvents'
 import { FxRates } from './collections/FxRates'
 import { Listings } from './collections/Listings'
+import { Marketplaces } from './collections/Marketplaces'
 import { Media } from './collections/Media'
 import { NewsItems } from './collections/NewsItems'
 import { Parts } from './collections/Parts'
@@ -56,6 +57,7 @@ export default buildConfig({
     EmailEvents,
     SavedSearches,
     Listings,
+    Marketplaces,
     FxRates,
     Users,
   ],

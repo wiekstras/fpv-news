@@ -60,6 +60,7 @@ export function DealsNavLink() {
 
 type Found = {
   source: string
+  marketplace?: string
   externalId: string
   title: string
   price: number | null
@@ -169,7 +170,7 @@ export function DealsSearch({ sources }: { sources: { value: string; label: stri
                   <td>{l.image ? <img src={l.image} alt="" referrerPolicy="no-referrer" loading="lazy" /> : null}</td>
                   <td>
                     <a href={l.url} target="_blank" rel="noopener noreferrer">{l.title}</a>
-                    <div className="deals__muted">{l.source}</div>
+                    <div className="deals__muted">{l.marketplace ?? l.source}</div>
                   </td>
                   <td>
                     <strong>{eur(l.priceEur)}</strong>

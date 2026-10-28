@@ -5,7 +5,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs' || process.env.NEXT_PHASE === 'phase-production-build') return
   const { getPayload } = await import('payload')
   const { default: config } = await import('@payload-config')
-  const { seedIfEmpty } = await import('./seed/ifEmpty')
+  const { seedStarterData } = await import('./seed/starterData')
 
   // The database may still be starting (e.g. right after a Railway deploy): retry for ~1 minute,
   // then exit so the platform restarts the service instead of serving errors forever.
@@ -13,7 +13,7 @@ export async function register() {
     try {
       const payload = await getPayload({ config, cron: true })
       // Not in Payload's onInit: that is skipped when getPayload is retried after a failed start.
-      await seedIfEmpty(payload).catch((err) => payload.logger.error({ err }, 'Seeding starter data failed'))
+      await seedStarterData(payload).catch((err) => payload.logger.error({ err }, 'Seeding starter data failed'))
       return
     } catch (err) {
       if (attempt >= 12) {

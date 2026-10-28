@@ -42,6 +42,9 @@ export const Listings: CollectionConfig = {
         if (!reference && process.env.EBAY_CLIENT_ID) {
           reference = await ebayNewPrices(keywords, politeFetch).then(marketPrice).catch(() => null)
         }
+        const { docs: sites } = sources.includes('other')
+          ? await req.payload.find({ collection: 'marketplaces', where: { enabled: { equals: true } }, pagination: false, depth: 0 })
+          : { docs: [] }
         const result = await searchAll({
           query: {
             keywords,
@@ -52,6 +55,7 @@ export const Listings: CollectionConfig = {
           },
           sources,
           permitted: new Set((settings.permittedDealSources ?? []) as DealSource[]),
+          sites,
           rates: await loadRates(req.payload),
           reference,
         })
@@ -83,6 +87,7 @@ export const Listings: CollectionConfig = {
   fields: [
     { name: 'source', type: 'select', required: true, options: DEAL_SOURCES, index: true },
     { name: 'externalId', type: 'text', required: true },
+    { name: 'marketplace', type: 'text', admin: { description: 'Site name for "Other marketplaces"' } },
     { name: 'title', type: 'text', required: true },
     {
       type: 'row',

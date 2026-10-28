@@ -5,6 +5,7 @@ import * as migration_20261027_221955_deals_radar from './20261027_221955_deals_
 import * as migration_20261027_222744_newsletter from './20261027_222744_newsletter';
 import * as migration_20261028_091014_news_keywords_deal_discount from './20261028_091014_news_keywords_deal_discount';
 import * as migration_20261028_132121_browser_sources_permissions from './20261028_132121_browser_sources_permissions';
+import * as migration_20261028_140242_eu_marketplaces from './20261028_140242_eu_marketplaces';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20261028_132121_browser_sources_permissions.up,
     down: migration_20261028_132121_browser_sources_permissions.down,
-    name: '20261028_132121_browser_sources_permissions'
+    name: '20261028_132121_browser_sources_permissions',
+  },
+  {
+    up: migration_20261028_140242_eu_marketplaces.up,
+    down: migration_20261028_140242_eu_marketplaces.down,
+    name: '20261028_140242_eu_marketplaces'
   },
 ];

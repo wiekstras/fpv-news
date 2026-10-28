@@ -1,4 +1,5 @@
 import { ADAPTERS } from './adapters'
+import { type MarketplaceSite, searchSite } from './adapters/generic'
 import { browserFetch } from './browser'
 import { toEur } from './fx'
 import { politeFetch } from './http'
@@ -21,6 +22,16 @@ export async function searchSource(source: DealSource, query: SearchQuery, permi
   return adapter.search(query, toolsFor(permitted))
 }
 
+// Every site from the Marketplaces list in parallel (different hosts); one result per site.
+export async function searchSites<T extends MarketplaceSite & { permitted?: boolean | null }>(sites: T[], query: SearchQuery) {
+  const settled = await Promise.allSettled(sites.map((site) => searchSite(site, query, toolsFor(Boolean(site.permitted)))))
+  return settled.map((r, i) => ({
+    site: sites[i],
+    listings: r.status === 'fulfilled' ? r.value : [],
+    error: r.status === 'rejected' ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : undefined,
+  }))
+}
+
 export type FoundListing = Listing & { priceEur: number | null; discountPct: number | null }
 
 // One-off search across sources in parallel (each site still gets its own spacing), filtered,
@@ -29,20 +40,33 @@ export async function searchAll(opts: {
   query: SearchQuery & { excludeKeywords?: string | null }
   sources: DealSource[]
   permitted: Set<DealSource>
+  sites: (MarketplaceSite & { permitted?: boolean | null })[]
   rates: Record<string, number>
   reference: number | null
 }) {
-  const settled = await Promise.allSettled(opts.sources.map((s) => searchSource(s, opts.query, opts.permitted.has(s))))
+  const builtIn = opts.sources.filter((s) => s !== 'other')
+  const [settled, siteResults] = await Promise.all([
+    Promise.allSettled(builtIn.map((s) => searchSource(s, opts.query, opts.permitted.has(s)))),
+    opts.sources.includes('other') ? searchSites(opts.sites, opts.query) : Promise.resolve([]),
+  ])
+  const results: { source: string; listings: Listing[]; error?: string }[] = [
+    ...settled.map((r, i) => ({
+      source: builtIn[i] as string,
+      listings: r.status === 'fulfilled' ? r.value : [],
+      error: r.status === 'rejected' ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : undefined,
+    })),
+    ...siteResults.map((r) => ({ source: r.site.name, listings: r.listings, error: r.error })),
+  ]
+
   const listings: FoundListing[] = []
-  const perSource: { source: DealSource; found?: number; error?: string }[] = []
-  settled.forEach((result, i) => {
-    const source = opts.sources[i]
-    if (result.status === 'rejected') {
-      perSource.push({ source, error: result.reason instanceof Error ? result.reason.message : String(result.reason) })
+  const perSource: { source: string; found?: number; error?: string }[] = []
+  results.forEach((result) => {
+    if (result.error) {
+      perSource.push({ source: result.source, error: result.error })
       return
     }
-    perSource.push({ source, found: result.value.length })
-    for (const listing of result.value) {
+    perSource.push({ source: result.source, found: result.listings.length })
+    for (const listing of result.listings) {
       const priceEur = toEur(listing.price, listing.currency, opts.rates)
       if (!matchesSearch(listing, priceEur, { ...opts.query })) continue
       listings.push({ ...listing, priceEur, discountPct: discountPct(priceEur, opts.reference) })

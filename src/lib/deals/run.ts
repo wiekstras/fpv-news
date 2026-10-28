@@ -1,14 +1,14 @@
 import type { Payload } from 'payload'
-import type { Listing as ListingDoc, SavedSearch } from '@/payload-types'
+import type { Listing as ListingDoc, Marketplace, SavedSearch } from '@/payload-types'
 import { fetchText } from '../http'
 import { ebayNewPrices } from './adapters/ebay'
 import { parseEcbRates, toEur } from './fx'
 import { politeFetch } from './http'
 import { matchesSearch } from './match'
-import { searchSource } from './search'
+import { searchSites, searchSource } from './search'
 import type { DealSource } from './options'
 import { discountPct, marketPrice } from './reference'
-import type { Listing } from './types'
+import type { Listing, SearchQuery } from './types'
 import { SITE_URL } from '../site'
 
 const ECB_URL = 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml'
@@ -89,6 +89,12 @@ async function runSearches(payload: Payload, searchId?: number) {
     pagination: false,
   })
 
+  const { docs: sites } = await payload.find({
+    collection: 'marketplaces',
+    where: { enabled: { equals: true } },
+    pagination: false,
+    depth: 0,
+  })
   const results: RunResult[] = []
   const alerts: { listing: ListingDoc; search: SavedSearch }[] = []
 
@@ -97,11 +103,8 @@ async function runSearches(payload: Payload, searchId?: number) {
     const wanted = (search.sources?.length ? search.sources : [...enabled]) as DealSource[]
     for (const source of wanted.filter((s) => enabled.has(s))) {
       try {
-        const found = await searchSource(
-          source,
-          { keywords: search.keywords, minPrice: search.minPrice, maxPrice: search.maxPrice, countries: search.countries ?? [] },
-          permitted.has(source),
-        )
+        const query = { keywords: search.keywords, minPrice: search.minPrice, maxPrice: search.maxPrice, countries: search.countries ?? [] }
+        const found = source === 'other' ? await searchOtherSites(payload, sites, query) : await searchSource(source, query, permitted.has(source))
         let created = 0
         for (const listing of found) {
           const priceEur = toEur(listing.price, listing.currency, rates)
@@ -132,6 +135,20 @@ async function runSearches(payload: Payload, searchId?: number) {
 
   if (alerts.length) await sendAlert(payload, settings.adminEmail, alerts)
   return results
+}
+
+// The Marketplaces list: searched together, each site's outcome saved on its row.
+async function searchOtherSites(payload: Payload, sites: Marketplace[], query: SearchQuery) {
+  const perSite = await searchSites(sites, query)
+  for (const { site, listings, error } of perSite) {
+    await payload.update({
+      collection: 'marketplaces',
+      id: site.id,
+      data: { lastRunAt: new Date().toISOString(), lastResult: error ? `ERROR ${error}`.slice(0, 500) : `${listings.length} found` },
+    })
+  }
+  if (perSite.length && perSite.every((r) => r.error)) throw new Error(`All ${perSite.length} marketplaces failed; see Deals → Marketplaces`)
+  return perSite.flatMap((r) => r.listings)
 }
 
 // Creates the listing if it is new (returns it); otherwise refreshes price/discount and returns null.

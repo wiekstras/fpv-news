@@ -79,6 +79,7 @@ export interface Config {
     'email-events': EmailEvent;
     'saved-searches': SavedSearch;
     listings: Listing;
+    marketplaces: Marketplace;
     'fx-rates': FxRate;
     users: User;
     'payload-kv': PayloadKv;
@@ -105,6 +106,7 @@ export interface Config {
     'email-events': EmailEventsSelect<false> | EmailEventsSelect<true>;
     'saved-searches': SavedSearchesSelect<false> | SavedSearchesSelect<true>;
     listings: ListingsSelect<false> | ListingsSelect<true>;
+    marketplaces: MarketplacesSelect<false> | MarketplacesSelect<true>;
     'fx-rates': FxRatesSelect<false> | FxRatesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -521,12 +523,55 @@ export interface SavedSearch {
    * Empty = every country the sources cover.
    */
   countries?:
-    ('NL' | 'BE' | 'DE' | 'AT' | 'FR' | 'IT' | 'ES' | 'PT' | 'PL' | 'CZ' | 'DK' | 'SE' | 'IE' | 'GB')[] | null;
+    | (
+        | 'NL'
+        | 'BE'
+        | 'LU'
+        | 'DE'
+        | 'AT'
+        | 'FR'
+        | 'IT'
+        | 'ES'
+        | 'PT'
+        | 'IE'
+        | 'PL'
+        | 'CZ'
+        | 'SK'
+        | 'HU'
+        | 'SI'
+        | 'HR'
+        | 'RO'
+        | 'BG'
+        | 'GR'
+        | 'CY'
+        | 'MT'
+        | 'DK'
+        | 'SE'
+        | 'FI'
+        | 'EE'
+        | 'LV'
+        | 'LT'
+        | 'GB'
+      )[]
+    | null;
   /**
    * Empty = every source enabled in Settings → Deals.
    */
   sources?:
-    | ('ebay' | 'marktplaats' | 'kleinanzeigen' | 'subito' | 'wallapop' | 'milanuncios' | 'leboncoin' | 'vinted')[]
+    | (
+        | 'ebay'
+        | 'marktplaats'
+        | 'kleinanzeigen'
+        | 'willhaben'
+        | 'olx'
+        | 'bazos'
+        | 'subito'
+        | 'wallapop'
+        | 'milanuncios'
+        | 'leboncoin'
+        | 'vinted'
+        | 'other'
+      )[]
     | null;
   active?: boolean | null;
   lastRunAt?: string | null;
@@ -543,8 +588,24 @@ export interface SavedSearch {
  */
 export interface Listing {
   id: number;
-  source: 'ebay' | 'marktplaats' | 'kleinanzeigen' | 'subito' | 'wallapop' | 'milanuncios' | 'leboncoin' | 'vinted';
+  source:
+    | 'ebay'
+    | 'marktplaats'
+    | 'kleinanzeigen'
+    | 'willhaben'
+    | 'olx'
+    | 'bazos'
+    | 'subito'
+    | 'wallapop'
+    | 'milanuncios'
+    | 'leboncoin'
+    | 'vinted'
+    | 'other';
   externalId: string;
+  /**
+   * Site name for "Other marketplaces"
+   */
+  marketplace?: string | null;
   title: string;
   price?: number | null;
   currency?: string | null;
@@ -566,6 +627,59 @@ export interface Listing {
   savedSearch?: (number | null) | SavedSearch;
   state: 'new' | 'interesting' | 'ignored';
   alertedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Searched when "Other marketplaces" is enabled in Settings → Deals. Results are read from the schema.org data on the search page; sites without it need a dedicated adapter.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "marketplaces".
+ */
+export interface Marketplace {
+  id: number;
+  name: string;
+  slug: string;
+  country:
+    | 'NL'
+    | 'BE'
+    | 'LU'
+    | 'DE'
+    | 'AT'
+    | 'FR'
+    | 'IT'
+    | 'ES'
+    | 'PT'
+    | 'IE'
+    | 'PL'
+    | 'CZ'
+    | 'SK'
+    | 'HU'
+    | 'SI'
+    | 'HR'
+    | 'RO'
+    | 'BG'
+    | 'GR'
+    | 'CY'
+    | 'MT'
+    | 'DK'
+    | 'SE'
+    | 'FI'
+    | 'EE'
+    | 'LV'
+    | 'LT'
+    | 'GB';
+  currency: string;
+  /**
+   * Search results URL with {q} for the keywords, optional {min} / {max} for the price (local currency).
+   */
+  searchUrl: string;
+  mode: 'http' | 'browser';
+  enabled?: boolean | null;
+  permitted?: boolean | null;
+  notes?: string | null;
+  lastRunAt?: string | null;
+  lastResult?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -756,6 +870,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'listings';
         value: number | Listing;
+      } | null)
+    | ({
+        relationTo: 'marketplaces';
+        value: number | Marketplace;
       } | null)
     | ({
         relationTo: 'fx-rates';
@@ -1041,6 +1159,7 @@ export interface SavedSearchesSelect<T extends boolean = true> {
 export interface ListingsSelect<T extends boolean = true> {
   source?: T;
   externalId?: T;
+  marketplace?: T;
   title?: T;
   price?: T;
   currency?: T;
@@ -1056,6 +1175,25 @@ export interface ListingsSelect<T extends boolean = true> {
   savedSearch?: T;
   state?: T;
   alertedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "marketplaces_select".
+ */
+export interface MarketplacesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  country?: T;
+  currency?: T;
+  searchUrl?: T;
+  mode?: T;
+  enabled?: T;
+  permitted?: T;
+  notes?: T;
+  lastRunAt?: T;
+  lastResult?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1191,11 +1329,28 @@ export interface Setting {
    * Sources the deals radar may query. eBay uses the official API; the others read the sites’ public search pages (leboncoin, Subito, Vinted and Wallapop through a headless browser). Only enable a marketplace if its terms allow it for you or you have its permission.
    */
   enabledDealSources?:
-    ('ebay' | 'marktplaats' | 'kleinanzeigen' | 'subito' | 'wallapop' | 'leboncoin' | 'vinted')[] | null;
+    | (
+        | 'ebay'
+        | 'marktplaats'
+        | 'kleinanzeigen'
+        | 'willhaben'
+        | 'olx'
+        | 'bazos'
+        | 'subito'
+        | 'wallapop'
+        | 'leboncoin'
+        | 'vinted'
+        | 'other'
+      )[]
+    | null;
   /**
    * Sites that gave you permission for automated searches: their robots.txt is skipped. Request spacing, the clear user agent and stopping at bot checks still apply.
    */
-  permittedDealSources?: ('marktplaats' | 'kleinanzeigen' | 'subito' | 'wallapop' | 'leboncoin' | 'vinted')[] | null;
+  permittedDealSources?:
+    | (
+        'marktplaats' | 'kleinanzeigen' | 'willhaben' | 'olx' | 'bazos' | 'subito' | 'wallapop' | 'leboncoin' | 'vinted'
+      )[]
+    | null;
   digestDay: '0' | '1' | '2' | '3' | '4' | '5' | '6';
   /**
    * HH:mm, Europe/Amsterdam. The draft is prepared then; you send it.

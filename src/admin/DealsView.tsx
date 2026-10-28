@@ -96,7 +96,9 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
           <RunDealsButton />
         </header>
 
-        <DealsSearch sources={DEAL_SOURCES.filter((s) => s.value in ADAPTERS && enabledSources.includes(s.value))} />
+        <DealsSearch
+          sources={DEAL_SOURCES.filter((s) => (s.value in ADAPTERS || s.value === 'other') && enabledSources.includes(s.value))}
+        />
 
         <h2>Saved searches</h2>
         <section className="deals__searches">
@@ -177,7 +179,7 @@ export async function DealsView({ initPageResult, params, searchParams }: AdminV
                     {isNew && <span className="deals__badge">NEW</span>}
                     <a href={l.url} target="_blank" rel="noopener noreferrer">{l.title}</a>
                     <div className="deals__muted">
-                      {DEAL_SOURCES.find((s) => s.value === l.source)?.label ?? l.source}
+                      {l.marketplace ?? DEAL_SOURCES.find((s) => s.value === l.source)?.label ?? l.source}
                       {typeof l.savedSearch === 'object' && l.savedSearch ? ` · ${l.savedSearch.name}` : ''}
                     </div>
                   </td>

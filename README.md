@@ -12,7 +12,7 @@ Next.js (App Router) + Payload CMS 3 in one app, PostgreSQL, Tailwind CSS. `dock
 | 2 | News aggregator + public feed | ✅ done |
 | 3 | DIY builds + moderation + affiliate links | ✅ done |
 | 4 | Newsletter (double opt-in, weekly draft + send) | ✅ done |
-| 5 | Deals radar, one source at a time | ✅ eBay, Marktplaats/2dehands, Kleinanzeigen |
+| 5 | Deals radar | ✅ eBay + 9 dedicated marketplace adapters + 25 generic EU marketplaces |
 | 6 | Deploy to Railway | ✅ Dockerfile + railway.json (image tested locally) |
 
 ## Local setup
@@ -178,12 +178,33 @@ check, ask them to allow-list the bot's user agent or your server's IP, or for A
 | eBay (DE, AT, NL, BE, FR, IT, ES, IE, PL, GB) | ✅ enabled by default | Official Browse API. Needs `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` (developer.ebay.com → Application keys, production). Used + unspecified condition, newest first. |
 | Marktplaats (NL) / 2dehands (BE) | ✅ HTTP, off by default | The JSON their own search page loads (`/lrp/api/search`). |
 | Kleinanzeigen (DE) | ✅ HTTP, off by default | Public search results page. |
+| willhaben (AT) | ✅ HTTP, off by default | Marketplace search page; results read from its Next.js page data. |
+| OLX (PL, PT, RO, BG) | ✅ HTTP, off by default | The JSON API their search pages use (`/api/v1/offers/`). Prices in PLN/RON/BGN are converted to EUR. |
+| Bazoš (CZ, SK) | ✅ HTTP, off by default | Classic HTML search results. |
 | Subito (IT) | ✅ browser, off by default | Search page; results read from its Next.js page data. |
 | leboncoin (FR) | ✅ browser, off by default | Search page; results read from its Next.js page data. Uses DataDome bot protection, so expect it to stop at a bot check unless leboncoin allow-lists you. |
 | Vinted (14 countries; NL, DE, FR, BE by default) | ✅ browser, off by default | Catalog page; results read from the JSON the page loads (`/api/v2/catalog/items`). |
 | Wallapop (ES) | ✅ browser, off by default | Search page; results read from the JSON the page loads (`api.wallapop.com/api/v3/search`). |
-| Milanuncios (ES) | ⏸ not built | Not enough known about its pages to write a parser without live access. |
+| **Other marketplaces** (25 sites, see below) | ✅ generic, off by default | Each site's search page, reading the schema.org data (JSON-LD/microdata) many sites include for search engines. |
 | Facebook Marketplace | ⛔ out of scope | As agreed. |
+
+### Other marketplaces (Deals → Marketplaces)
+
+Every other EU marketplace is a row in **Deals → Marketplaces**: name, country, currency, a search URL with `{q}`
+(keywords) and optional `{min}`/`{max}`, HTTP or browser mode, *enabled*, and *site gave permission* (skips robots.txt).
+They are all searched when **Other marketplaces** is enabled in *Settings → Deals*. Each run writes *Last result* on the
+row (`12 found`, or the error), so you can see at a glance which sites work. Add, fix or switch off sites there without
+code changes; new rows from future versions are added on boot, existing rows are never changed.
+
+Seeded list: Milanuncios (ES), CustoJusto (PT), Allegro Lokalnie (PL), Jófogás and Hardverapró (HU), Blocket and
+Tradera (SE), DBA (DK), Tori (FI), DoneDeal and Adverts.ie (IE), Njuškalo (HR), Bolha (SI), Skelbiu (LT), SS.com (LV),
+Okidoki and Osta.ee (EE), xe.gr (GR), Shpock (AT), markt.de and Quoka (DE), 2ememain (BE), Bazar.lu (LU),
+Bazaraki (CY), Maltapark (MT).
+
+How well this works depends on the site: it only finds listings on search pages that include schema.org data. A row
+reporting *No listings in the page's structured data* needs a corrected search URL, browser mode, or a dedicated
+adapter (send me a saved copy of the results page and I'll write one). **None of the seeded URLs could be checked from
+the build environment**; test one with `pnpm deals:check site "<search url with {q}>" "dji o3" HU`.
 
 Enable a marketplace only if its terms allow it for you or you have its permission; tick it under *Sites that gave
 permission* to skip its robots.txt.
@@ -200,6 +221,11 @@ DEALS_PERMITTED=1 pnpm deals:check vinted "dji goggles" NL        # DEALS_PERMIT
 DEALS_PERMITTED=1 pnpm deals:check subito "radiomaster"
 DEALS_PERMITTED=1 pnpm deals:check wallapop "gafas fpv"
 DEALS_PERMITTED=1 pnpm deals:check leboncoin "dji o3"
+pnpm deals:check willhaben "dji o3"
+pnpm deals:check olx "dji o3" PL,RO
+pnpm deals:check bazos "dji o3" CZ
+pnpm deals:check site "https://www.jofogas.hu/magyarorszag?q={q}" "dji o3" HU    # any Marketplaces row
+DEALS_MODE=browser pnpm deals:check site "https://www.blocket.se/annonser/hela_sverige?q={q}" "dji o3" SE
 ```
 
 Locally, install Chromium once with `pnpm exec playwright-core install chromium` (or point `PLAYWRIGHT_CHROMIUM_PATH` at
@@ -219,7 +245,7 @@ Ready to deploy as-is. The repo has a `Dockerfile` and `railway.json`; Railway b
 
 **What happens on boot:** the app waits up to a minute for the database (then exits so Railway restarts it), runs
 pending migrations, loads the starter data if the database is empty (16 news sources + the example build; no user
-accounts), and starts the background jobs (news every 15 min, deals every 3 h, digest drafts, exchange rates).
+accounts), adds any missing marketplaces to the Marketplaces list, and starts the background jobs (news every 15 min, deals every 3 h, digest drafts, exchange rates).
 The image is built on Microsoft's Playwright image, so the headless Chromium for the browser-based deal sources is
 included. This whole flow was tested locally with the production image against an empty database.
 

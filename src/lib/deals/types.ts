@@ -4,6 +4,7 @@ import type { DealSource } from './options'
 // The common shape every adapter returns.
 export type Listing = {
   source: DealSource
+  marketplace?: string // site name for source "other"
   externalId: string
   title: string
   price: number | null
