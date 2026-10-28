@@ -211,6 +211,12 @@ export const Builds: CollectionConfig = {
           type: 'row',
           fields: [
             { name: 'quantity', type: 'number', defaultValue: 1, min: 1 },
+            {
+              name: 'price',
+              type: 'number',
+              min: 0,
+              admin: { description: 'Price per piece in EUR (optional; used for the build total).' },
+            },
             { name: 'note', type: 'text' },
           ],
         },

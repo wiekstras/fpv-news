@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { catalogPartIds, hasAffiliateLinks, resolveParts } from '@/lib/builds/parts'
+import { buildTotal, catalogPartIds, hasAffiliateLinks, resolveParts } from '@/lib/builds/parts'
 import type { AffiliateLink, Build, Part, Retailer } from '@/payload-types'
 
 const part = (id: number, name: string, brand?: string) => ({ id, name, brand, category: 'motors' }) as Part
 const shop = (id: number, name: string) => ({ id, name }) as Retailer
-const link = (id: number, p: Part | number, r: Retailer, url: string, active = true) =>
-  ({ id, part: p, retailer: r, url, active }) as AffiliateLink
+const link = (id: number, p: Part | number, r: Retailer, url: string, active = true, price?: number) =>
+  ({ id, part: p, retailer: r, url, active, price }) as AffiliateLink
 
 const motors = part(1, 'F60 Pro V', 'T-Motor')
 const frame = part(2, 'Source One V5')
@@ -16,12 +16,12 @@ const parts: Build['parts'] = [
 ]
 
 describe('resolveParts', () => {
-  it('attaches only active links of the matching catalog part', () => {
+  it('attaches only active links of the matching catalog part, cheapest first', () => {
     const shopA = shop(1, 'Shop A')
     const shopB = shop(2, 'Shop B')
     const rows = resolveParts(parts, [
-      link(1, motors, shopA, 'https://a.example/motors?ref=fpv'),
-      link(2, 1, shopB, 'https://b.example/motors?ref=fpv'),
+      link(1, motors, shopA, 'https://a.example/motors?ref=fpv', true, 29.9),
+      link(2, 1, shopB, 'https://b.example/motors?ref=fpv', true, 24.5),
       link(3, frame, shopA, 'https://a.example/frame', false),
     ])
     expect(rows[0]).toEqual({
@@ -29,9 +29,10 @@ describe('resolveParts', () => {
       category: 'motors',
       quantity: 4,
       note: '1950KV',
+      unitPrice: 24.5,
       links: [
-        { retailer: 'Shop A', url: 'https://a.example/motors?ref=fpv' },
-        { retailer: 'Shop B', url: 'https://b.example/motors?ref=fpv' },
+        { id: 2, retailer: 'Shop B', url: 'https://b.example/motors?ref=fpv', price: 24.5 },
+        { id: 1, retailer: 'Shop A', url: 'https://a.example/motors?ref=fpv', price: 29.9 },
       ],
     })
     expect(rows[1].links).toEqual([])
@@ -46,6 +47,19 @@ describe('resolveParts', () => {
 
   it('handles an empty parts list', () => {
     expect(resolveParts(undefined, [])).toEqual([])
+  })
+
+  it('totals the build from row prices, else the cheapest shop price', () => {
+    const rows = resolveParts(
+      [
+        { part: motors, quantity: 4 },
+        { part: frame, quantity: 1, price: 45 },
+        { freeText: 'Zip ties', quantity: 10 },
+      ],
+      [link(1, motors, shop(1, 'A'), 'https://a', true, 25), link(2, motors, shop(2, 'B'), 'https://b')],
+    )
+    expect(rows.map((r) => r.unitPrice)).toEqual([25, 45, null])
+    expect(buildTotal(rows)).toEqual({ total: 145, priced: 2, count: 3 })
   })
 })
 

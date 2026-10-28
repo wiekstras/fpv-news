@@ -1,11 +1,13 @@
 import config from '@payload-config'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import { cache } from 'react'
 import { AffiliateDisclosure } from '@/components/AffiliateDisclosure'
 import { BuildContent } from '@/components/BuildContent'
+import { CommentForm, LikeButton } from '@/components/BuildInteractions'
 import { PartsList } from '@/components/PartsList'
 import { DIFFICULTIES, FRAME_SIZES, optionLabel } from '@/lib/builds/options'
 import { catalogPartIds, hasAffiliateLinks, resolveParts } from '@/lib/builds/parts'
@@ -62,6 +64,13 @@ export default async function BuildPage({ params }: Props) {
       })
     : { docs: [] }
   const rows = resolveParts(build.parts, links)
+  const { user } = await payload.auth({ headers: await headers() })
+  const [comments, likes, myLike] = await Promise.all([
+    payload.find({ collection: 'comments', where: { build: { equals: build.id }, status: { equals: 'visible' } }, sort: 'createdAt', pagination: false, depth: 0 }),
+    payload.count({ collection: 'likes', where: { build: { equals: build.id } } }),
+    user ? payload.count({ collection: 'likes', where: { build: { equals: build.id }, user: { equals: user.id } } }) : null,
+  ])
+  const loginUrl = `/admin/login?redirect=${encodeURIComponent(`/builds/${build.slug}`)}`
   const showDisclosure = hasAffiliateLinks(rows)
 
   const photos = (build.photos ?? []) as Media[]
@@ -87,6 +96,9 @@ export default async function BuildPage({ params }: Props) {
             .filter(Boolean)
             .join(' · ')}
         </p>
+        <div className="mt-3">
+          <LikeButton buildId={build.id} initialCount={likes.totalDocs} initialLiked={Boolean(myLike?.totalDocs)} loggedIn={Boolean(user)} loginUrl={loginUrl} />
+        </div>
         {!!build.tags?.length && (
           <ul className="mt-3 flex flex-wrap gap-2">
             {build.tags.map((tag) => (
@@ -121,9 +133,33 @@ export default async function BuildPage({ params }: Props) {
           {showDisclosure && (
             <p className="mb-3 text-sm text-muted">Shop links are affiliate links (see the disclosure above).</p>
           )}
-          <PartsList rows={rows} />
+          <PartsList rows={rows} buildId={build.id} />
         </section>
       )}
+
+      <section id="comments" className="mt-12">
+        <h2 className="mb-4 text-2xl font-bold">Comments ({comments.docs.length})</h2>
+        <ul className="space-y-4">
+          {comments.docs.map((c) => (
+            <li key={c.id} className="rounded-lg border border-border p-4">
+              <p className="osd text-muted">
+                {c.authorName} · {formatDate(c.createdAt)}
+              </p>
+              <p className="mt-1 whitespace-pre-line">{c.body}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-6">
+          {user ? (
+            <CommentForm buildId={build.id} />
+          ) : (
+            <p className="text-muted">
+              <Link href={loginUrl} className="text-accent underline">Log in</Link> or{' '}
+              <Link href="/register" className="text-accent underline">create an account</Link> to comment.
+            </p>
+          )}
+        </div>
+      </section>
     </article>
   )
 }

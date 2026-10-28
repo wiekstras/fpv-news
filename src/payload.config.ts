@@ -7,11 +7,14 @@ import { buildConfig } from 'payload'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
+import { AffiliateClicks } from './collections/AffiliateClicks'
 import { AffiliateLinks } from './collections/AffiliateLinks'
 import { Builds } from './collections/Builds'
+import { Comments } from './collections/Comments'
 import { Digests } from './collections/Digests'
 import { EmailEvents } from './collections/EmailEvents'
 import { FxRates } from './collections/FxRates'
+import { Likes } from './collections/Likes'
 import { Listings } from './collections/Listings'
 import { GeoCache } from './collections/GeoCache'
 import { Marketplaces } from './collections/Marketplaces'
@@ -54,6 +57,9 @@ export default buildConfig({
     Parts,
     Retailers,
     AffiliateLinks,
+    AffiliateClicks,
+    Comments,
+    Likes,
     Subscribers,
     Digests,
     EmailEvents,

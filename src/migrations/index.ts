@@ -7,6 +7,7 @@ import * as migration_20261028_091014_news_keywords_deal_discount from './202610
 import * as migration_20261028_132121_browser_sources_permissions from './20261028_132121_browser_sources_permissions';
 import * as migration_20261028_140242_eu_marketplaces from './20261028_140242_eu_marketplaces';
 import * as migration_20261028_143253_deals_health_alerts_distance from './20261028_143253_deals_health_alerts_distance';
+import * as migration_20261028_143652_builds_clicks_comments_likes from './20261028_143652_builds_clicks_comments_likes';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20261028_143253_deals_health_alerts_distance.up,
     down: migration_20261028_143253_deals_health_alerts_distance.down,
-    name: '20261028_143253_deals_health_alerts_distance'
+    name: '20261028_143253_deals_health_alerts_distance',
+  },
+  {
+    up: migration_20261028_143652_builds_clicks_comments_likes.up,
+    down: migration_20261028_143652_builds_clicks_comments_likes.down,
+    name: '20261028_143652_builds_clicks_comments_likes'
   },
 ];

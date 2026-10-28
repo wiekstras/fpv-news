@@ -11,12 +11,13 @@ const RETAILERS = [
   { name: 'Example Shop NL', url: 'https://example.org', country: 'NL' },
 ]
 
-const PARTS: (Pick<Part, 'name' | 'brand' | 'category'> & { shops: number[] })[] = [
-  { brand: 'TBS', name: 'Source One V5 5" frame', category: 'frame', shops: [0, 1] },
-  { brand: 'T-Motor', name: 'Velox V2207.5 1950KV', category: 'motors', shops: [0] },
-  { brand: 'SpeedyBee', name: 'F405 V4 stack', category: 'stack', shops: [0, 1] },
-  { brand: 'Walksnail', name: 'Avatar HD Pro Kit', category: 'vtx', shops: [1] },
-  { brand: 'RadioMaster', name: 'RP1 ExpressLRS 2.4GHz', category: 'receiver', shops: [0] },
+// shops: [shop index, example price in EUR]
+const PARTS: (Pick<Part, 'name' | 'brand' | 'category'> & { shops: [number, number][] })[] = [
+  { brand: 'TBS', name: 'Source One V5 5" frame', category: 'frame', shops: [[0, 34.9], [1, 32.5]] },
+  { brand: 'T-Motor', name: 'Velox V2207.5 1950KV', category: 'motors', shops: [[0, 21.9]] },
+  { brand: 'SpeedyBee', name: 'F405 V4 stack', category: 'stack', shops: [[0, 74.9], [1, 79]] },
+  { brand: 'Walksnail', name: 'Avatar HD Pro Kit', category: 'vtx', shops: [[1, 119]] },
+  { brand: 'RadioMaster', name: 'RP1 ExpressLRS 2.4GHz', category: 'receiver', shops: [[0, 19.9]] },
   { brand: 'HQProp', name: '5.1x3.5x3 props', category: 'props', shops: [] },
 ]
 
@@ -66,10 +67,10 @@ export async function seedExampleBuild(payload: Payload) {
   const parts = []
   for (const { shops, ...data } of PARTS) {
     const part = await payload.create({ collection: 'parts', data })
-    for (const i of shops) {
+    for (const [i, price] of shops) {
       await payload.create({
         collection: 'affiliate-links',
-        data: { part: part.id, retailer: retailers[i].id, url: `${RETAILERS[i].url}/?product=${part.id}&ref=fpvnews`, active: true },
+        data: { part: part.id, retailer: retailers[i].id, url: `${RETAILERS[i].url}/?product=${part.id}&ref=fpvnews`, price, active: true },
       })
     }
     parts.push(part)
@@ -109,7 +110,7 @@ export async function seedExampleBuild(payload: Payload) {
       content,
       parts: [
         ...parts.map((part, i) => ({ part: part.id, quantity: i === 1 ? 4 : i === 5 ? 3 : 1, note: i === 5 ? 'Three sets; they are consumables.' : undefined })),
-        { freeText: '6S 1100mAh LiPo', quantity: 4 },
+        { freeText: '6S 1100mAh LiPo', quantity: 4, price: 24 },
         { freeText: 'M3 hardware, zip ties, heat shrink', quantity: 1 },
       ],
     },

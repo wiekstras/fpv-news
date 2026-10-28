@@ -74,6 +74,9 @@ export interface Config {
     parts: Part;
     retailers: Retailer;
     'affiliate-links': AffiliateLink;
+    'affiliate-clicks': AffiliateClick;
+    comments: Comment;
+    likes: Like;
     subscribers: Subscriber;
     digests: Digest;
     'email-events': EmailEvent;
@@ -103,6 +106,9 @@ export interface Config {
     parts: PartsSelect<false> | PartsSelect<true>;
     retailers: RetailersSelect<false> | RetailersSelect<true>;
     'affiliate-links': AffiliateLinksSelect<false> | AffiliateLinksSelect<true>;
+    'affiliate-clicks': AffiliateClicksSelect<false> | AffiliateClicksSelect<true>;
+    comments: CommentsSelect<false> | CommentsSelect<true>;
+    likes: LikesSelect<false> | LikesSelect<true>;
     subscribers: SubscribersSelect<false> | SubscribersSelect<true>;
     digests: DigestsSelect<false> | DigestsSelect<true>;
     'email-events': EmailEventsSelect<false> | EmailEventsSelect<true>;
@@ -279,6 +285,10 @@ export interface Build {
          */
         freeText?: string | null;
         quantity?: number | null;
+        /**
+         * Price per piece in EUR (optional; used for the build total).
+         */
+        price?: number | null;
         note?: string | null;
         id?: string | null;
       }[]
@@ -396,6 +406,11 @@ export interface AffiliateLink {
   part: number | Part;
   retailer: number | Retailer;
   url: string;
+  /**
+   * Current price at this shop (EUR), for build totals. Optional.
+   */
+  price?: number | null;
+  clicks?: number | null;
   active?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -412,6 +427,42 @@ export interface Retailer {
    * ISO code, e.g. NL, DE, or EU / Global.
    */
   country?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-clicks".
+ */
+export interface AffiliateClick {
+  id: number;
+  affiliateLink: number | AffiliateLink;
+  build?: (number | null) | Build;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments".
+ */
+export interface Comment {
+  id: number;
+  build: number | Build;
+  author: number | User;
+  authorName: string;
+  body: string;
+  status?: ('visible' | 'hidden') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "likes".
+ */
+export interface Like {
+  id: number;
+  build: number | Build;
+  user: number | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -924,6 +975,18 @@ export interface PayloadLockedDocument {
         value: number | AffiliateLink;
       } | null)
     | ({
+        relationTo: 'affiliate-clicks';
+        value: number | AffiliateClick;
+      } | null)
+    | ({
+        relationTo: 'comments';
+        value: number | Comment;
+      } | null)
+    | ({
+        relationTo: 'likes';
+        value: number | Like;
+      } | null)
+    | ({
         relationTo: 'subscribers';
         value: number | Subscriber;
       } | null)
@@ -1066,6 +1129,7 @@ export interface BuildsSelect<T extends boolean = true> {
         part?: T;
         freeText?: T;
         quantity?: T;
+        price?: T;
         note?: T;
         id?: T;
       };
@@ -1146,7 +1210,42 @@ export interface AffiliateLinksSelect<T extends boolean = true> {
   part?: T;
   retailer?: T;
   url?: T;
+  price?: T;
+  clicks?: T;
   active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-clicks_select".
+ */
+export interface AffiliateClicksSelect<T extends boolean = true> {
+  affiliateLink?: T;
+  build?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments_select".
+ */
+export interface CommentsSelect<T extends boolean = true> {
+  build?: T;
+  author?: T;
+  authorName?: T;
+  body?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "likes_select".
+ */
+export interface LikesSelect<T extends boolean = true> {
+  build?: T;
+  user?: T;
   updatedAt?: T;
   createdAt?: T;
 }
